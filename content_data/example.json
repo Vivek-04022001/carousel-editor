@@ -1,0 +1,34 @@
+{
+  "brand": "MillionaireMoveX",
+  "handle": "@millionairemovex",
+  "cover": {
+    "title": "10 things people notice about you:",
+    "subtitle": "(but will never tell you)"
+  },
+  "slides": [
+    {
+      "heading": "1.The state of your hands.",
+      "body": "Not manicure,\nbut skin. Dryness. Cuticles.\nHands tell more\nthan your outfit ever will."
+    },
+    {
+      "heading": "2.How you smell when you pass by.",
+      "body": "Not just perfume. Clean laundry. Fresh hair. It's the first thing people register, and the last thing they forget."
+    },
+    {
+      "heading": "3. Your mindset.",
+      "body": "What you say and how you think will determine what people will think of you. And your feed shapes it more than you think. I've listed some amazing creators for you to follow in the caption."
+    },
+    {
+      "heading": "8.How you treat service staff.",
+      "body": "That barista. That waiter. That delivery person. People watch that more than you think."
+    },
+    {
+      "heading": "9. Your eye contact.",
+      "body": "Too little — you seem distracted or disinterested. Too much you seem intense. The balance says, \"I'm present.\""
+    },
+    {
+      "heading": "10. Your energy when you enter a room.",
+      "body": "Before you speak a single word, people already decided something about you."
+    }
+  ]
+}

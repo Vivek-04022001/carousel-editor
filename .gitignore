@@ -1,0 +1,13 @@
+# Claude Code local settings
+.claude/
+
+# OS / editor cruft
+Thumbs.db
+.DS_Store
+desktop.ini
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/

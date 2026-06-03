@@ -2,6 +2,7 @@
   "brand": "MillionaireMoveX",
   "handle": "@millionairemovex",
   "cover": {
+    "hook": "SPOT IT BEFORE IT WORKS",
     "title": "7 dark psychology tricks people use on you:",
     "subtitle": "(without you ever noticing)"
   },
@@ -37,6 +38,13 @@
     {
       "heading": "The shift.",
       "body": "You can't stop people\nfrom running these plays.\nYou can stop being\nthe easiest target in the room.\nAwareness is the whole game."
+    },
+    {
+      "type": "cta",
+      "kicker": "BEFORE YOU GO",
+      "prompt": "Which trick has been used on you?",
+      "follow": "Follow **@millionairemovex** for the things no one warns you about.",
+      "share": "Save this — and send it to someone who keeps falling for it."
     }
   ]
 }

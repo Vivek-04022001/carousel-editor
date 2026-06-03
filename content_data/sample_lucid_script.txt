@@ -1,0 +1,49 @@
+PILLAR: people
+EYEBROW: SOCIAL DYNAMICS
+TITLE: The Psychology Behind Why You're Liked More When You Care Less.
+SUBTITLE: (but most people get this backwards)
+
+== body ==
+let's be clear about what "caring less" actually means.
+
+It is not coldness. It is not pretending people don't matter.
+
+It means your sense of self isn't hanging on whether this specific person approves of you right now.
+
+== body ==
+so where does the "care less" effect actually come from?
+
+When you need a person to like you, they feel it.
+
+The slight over-explaining. The quick agreement. The laugh that comes a beat too early.
+
+== term ==
+EYEBROW: BEHAVIOR ANALYSIS
+TERM: Outcome dependence
+EXAMPLE: e.g. re-reading a text to check if they "still" like you.
+Needing a specific reaction from someone before you can feel okay. It quietly hands them the controls.
+
+== compare ==
+HEADING: Caring less, in one contrast:
+A: The trap | You explain yourself until they finally approve.
+B: The move | You say it once and let the silence hold.
+
+== interrupt ==
+KICKER: Read this twice
+You don't need them to **agree.** You need you to **decide.**
+
+== quote ==
+Detachment isn't the absence of care.
+It's the **presence of self.**
+ATTRIBUTION: — Lucid
+
+== recap ==
+KICKER: Save this
+TITLE: The whole thing, in four lines:
+- Caring less = self, not coldness.
+- Neediness leaks — people feel it.
+- Outcome dependence hands them control.
+- Say it once. Let the silence hold.
+
+== cta ==
+Save this. You'll need it the next time you catch yourself trying too hard.

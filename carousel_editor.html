@@ -248,6 +248,7 @@
     <label class="chk"><input type="checkbox" id="guidesChk"> Guides</label>
     <label class="chk"><input type="checkbox" id="canvasChk" checked> Edit on canvas</label>
     <div class="spacer"></div>
+    <span class="lbl" id="visitWrap" style="display:none">Visits <strong id="visitCount">—</strong></span>
     <span class="lbl">Format</span>
     <select id="format" style="width:auto"><option value="png">PNG</option><option value="jpg">JPG</option></select>
     <button id="dlOne">Download current</button>
@@ -1145,6 +1146,37 @@ $('canvasChk').onchange = e => { state.ui.canvasEdit = e.target.checked; if (!e.
   history = [snap()]; hidx = 0; updateHistButtons();
   window.TGM = { state:() => state, renderSlideInto, parseMarkup, slideBg, blendOver, exportSlide, serializeBlock };
 })();
+</script>
+
+<script type="module">
+  import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js';
+  import { getFirestore, doc, updateDoc, increment, getDoc, setDoc } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js';
+
+  const app = initializeApp({
+    apiKey: "AIzaSyABGoxOXj0kHuYXFnNmUqcUT0l4FG5J7NU",
+    authDomain: "the-grey-mind.firebaseapp.com",
+    projectId: "the-grey-mind",
+    storageBucket: "the-grey-mind.firebasestorage.app",
+    messagingSenderId: "296394264485",
+    appId: "1:296394264485:web:707c0e9ab16fdbb676224c"
+  });
+
+  const db = getFirestore(app);
+
+  async function trackVisit() {
+    const ref = doc(db, 'stats', 'visitors');
+    try {
+      await updateDoc(ref, { total: increment(1) });
+    } catch {
+      await setDoc(ref, { total: 1 });
+    }
+    const snap = await getDoc(ref);
+    const count = snap.data()?.total ?? 1;
+    document.getElementById('visitCount').textContent = count.toLocaleString();
+    document.getElementById('visitWrap').style.display = '';
+  }
+
+  trackVisit();
 </script>
 </body>
 </html>

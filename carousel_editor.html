@@ -162,6 +162,11 @@
 <aside class="sidebar">
   <div class="brandbar"><span class="dot" id="brandDot"></span><span class="mark">The Grey Mind</span></div>
   <p class="sub">Carousel editor · 1080×1350 · 3 pillars</p>
+  <div id="visitBadge" style="display:none;align-items:center;gap:7px;margin:-4px 0 16px;padding:8px 11px;background:var(--panel-2);border:1px solid var(--border);border-radius:var(--radius-sm);">
+    <span style="width:7px;height:7px;border-radius:50%;background:var(--accent);flex-shrink:0;"></span>
+    <span style="font-size:12px;color:var(--muted);">Total visits</span>
+    <strong id="visitCountSidebar" style="font-size:13px;margin-left:auto;font-variant-numeric:tabular-nums;">—</strong>
+  </div>
 
   <h3>Brand</h3>
   <div class="row"><label>Wordmark</label><div class="ctrl"><input type="text" id="wordmark" value="THE GREY MIND"></div></div>
@@ -1172,8 +1177,11 @@ $('canvasChk').onchange = e => { state.ui.canvasEdit = e.target.checked; if (!e.
     }
     const snap = await getDoc(ref);
     const count = snap.data()?.total ?? 1;
-    document.getElementById('visitCount').textContent = count.toLocaleString();
+    const formatted = count.toLocaleString();
+    document.getElementById('visitCount').textContent = formatted;
     document.getElementById('visitWrap').style.display = '';
+    document.getElementById('visitCountSidebar').textContent = formatted;
+    document.getElementById('visitBadge').style.display = 'flex';
   }
 
   trackVisit();

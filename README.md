@@ -79,8 +79,30 @@ python carousel.py content_data/my_carousel.json --out output/my_carousel --shee
 ## Files
 
 ```
-carousel_editor.html     standalone visual editor
-carousel.py              CLI renderer (Pillow)
+carousel_editor.html     visual editor shell (markup; no build step)
+editor.css               editor styles
+js/                       editor scripts (classic, loaded in order — shared scope)
+  helpers.js              hyperscript h() + colour/blend + markup parse
+  state.js                default state, migration, state accessors
+  renderers.js            per-type slide views + renderSlideInto
+  editor.js               sidebar fields, format toolbar, fine-tune grids
+  views.js                pillars / slide-list / editor / preview
+  controls.js             brand + slide-action bindings
+  history.js              undo/redo + localStorage autosave
+  export.js               PNG/JPG/ZIP export, JSON import, keyboard nav
+  canvas-edit.js          in-canvas select / drag / in-place edit
+  init.js                 boot
+  firebase.js             visitor counter (ES module)
+carousel.py              CLI renderer entrypoint (Pillow)
+greymind/                 rendering engine (package)
+  constants.py            canvas size + slide-type sets
+  fonts.py                Space Grotesk loading + weights
+  colors.py               hex parsing + export-safe blend maths
+  markup.py               styled runs, line drawing, word-wrap
+  doc.py                  editor-state accessor (Doc)
+  blocks.py               measurable/drawable block model
+  render.py               chrome + per-slide layout + generate()
+  caption.py              starter caption + contact sheet
 lucid_to_editor.py       Lucid script → editor JSON
 The Grey Mind.skill      Lucid brand voice + carousel structure
 fonts/Space_Grotesk/     typeface

@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>The Grey Mind — Carousel Editor</title>
+<title>The Grey Mind — Carousel Studio</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <!-- Space Grotesk: 300 Light · 400 Regular · 500 Medium · 600 SemiBold · 700 Bold -->
@@ -11,1180 +11,216 @@
 <script src="https://cdn.jsdelivr.net/npm/html-to-image@1.11.13/dist/html-to-image.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
-<style>
-  :root {
-    --bg:#0d0f0e; --panel:#161a18; --panel-2:#1d2320; --border:#2a322e; --border-strong:#3a443e;
-    --text:#e8ebe9; --muted:#8a948f; --accent:#2f6f4f; --accent-hover:#38855e; --danger:#c8553d;
-    --radius:12px; --radius-sm:8px; --shadow:0 1px 3px rgba(0,0,0,.4),0 12px 32px rgba(0,0,0,.4);
-    --font-ui:-apple-system,BlinkMacSystemFont,'SF Pro Text','Inter','Segoe UI',Helvetica,Arial,sans-serif;
-  }
-  * { box-sizing:border-box; }
-  html,body { margin:0; padding:0; background:var(--bg); color:var(--text); font-family:var(--font-ui); -webkit-font-smoothing:antialiased; }
-  body { display:grid; grid-template-columns:452px 1fr; height:100vh; overflow:hidden; }
-  .sidebar { background:var(--panel); border-right:1px solid var(--border); overflow-y:auto; padding:22px 20px 64px; }
-  .brandbar { display:flex; align-items:center; gap:11px; margin:0 0 4px; }
-  .brandbar .mark { font-size:13px; font-weight:400; letter-spacing:.22em; text-transform:uppercase; }
-  .brandbar .dot { width:9px; height:9px; border-radius:50%; background:var(--accent); }
-  .sub { color:var(--muted); font-size:12px; margin:0 0 16px; }
-  .sidebar h3 { margin:24px 0 11px; font-size:11px; font-weight:600; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); }
-  .row { display:flex; gap:10px; align-items:center; margin-bottom:10px; }
-  .row > label { flex:0 0 88px; font-size:12.5px; color:var(--muted); font-weight:500; }
-  .row > .ctrl { flex:1; }
-  input[type=text],input[type=number],textarea,select {
-    width:100%; background:var(--panel-2); border:1px solid var(--border); color:var(--text);
-    border-radius:var(--radius-sm); padding:9px 11px; font-size:13.5px; font-family:inherit; outline:none;
-    transition:border-color .15s ease, box-shadow .15s ease;
-  }
-  input:focus,textarea:focus,select:focus { border-color:var(--accent); box-shadow:0 0 0 3px rgba(47,111,79,.25); }
-  textarea { min-height:64px; resize:vertical; line-height:1.5; }
-  input[type=color] { width:40px; height:34px; border:1px solid var(--border); background:var(--panel-2); border-radius:var(--radius-sm); padding:2px; cursor:pointer; flex:0 0 auto; }
-  input[type=range] { accent-color:var(--accent); height:22px; cursor:pointer; }
-  input[type=checkbox] { width:17px; height:17px; accent-color:var(--accent); cursor:pointer; }
-
-  button {
-    background:var(--panel-2); color:var(--text); border:1px solid var(--border); padding:9px 14px;
-    border-radius:10px; font-size:12.5px; font-weight:500; font-family:inherit; cursor:pointer;
-    transition:background .15s ease, border-color .15s ease, transform .08s ease;
-  }
-  button:hover { background:#232a26; border-color:var(--border-strong); }
-  button:active { transform:translateY(1px); }
-  button.primary { background:var(--accent); color:#fff; border-color:var(--accent); font-weight:600; }
-  button.primary:hover { background:var(--accent-hover); border-color:var(--accent-hover); }
-  button.ghost { background:transparent; }
-  button.danger { color:var(--danger); }
-  button.danger:hover { background:rgba(200,85,61,.12); border-color:rgba(200,85,61,.5); }
-  button.mini { padding:6px 9px; font-size:12px; }
-
-  .pillars { display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; margin-bottom:6px; }
-  .pillar { border:1.5px solid var(--border); border-radius:10px; padding:11px 8px 9px; cursor:pointer; text-align:center; transition:border-color .15s ease, background .15s ease; }
-  .pillar:hover { background:var(--panel-2); }
-  .pillar.active { border-color:var(--text); }
-  .pillar .sw { width:100%; height:28px; border-radius:6px; margin-bottom:7px; }
-  .pillar .nm { font-size:11px; font-weight:600; letter-spacing:.06em; }
-  .pillar .nm small { display:block; color:var(--muted); font-weight:500; letter-spacing:0; margin-top:2px; font-size:10px; }
-
-  .slide-list { display:flex; flex-direction:column; gap:5px; max-height:200px; overflow-y:auto; margin-bottom:12px; }
-  .slide-item { display:flex; align-items:center; gap:9px; padding:9px 11px; background:var(--panel-2); border:1px solid transparent; border-radius:var(--radius-sm); cursor:pointer; font-size:12.5px; }
-  .slide-item:hover { background:#232a26; }
-  .slide-item.active { border-color:var(--accent); background:rgba(47,111,79,.14); }
-  .slide-item .label { flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-weight:500; }
-  .slide-item .idx { color:var(--muted); font-variant-numeric:tabular-nums; font-size:11px; }
-  .slide-actions .add-row { display:grid; grid-template-columns:repeat(2,1fr); gap:7px; }
-  .slide-actions .edit-row { display:grid; grid-template-columns:1fr 1fr; gap:7px; margin-top:7px; }
-  .slide-actions button { width:100%; padding:9px 6px; }
-
-  .fmtbar { display:flex; flex-wrap:wrap; gap:5px; align-items:center; padding:9px; background:var(--panel-2); border:1px solid var(--border); border-radius:10px; margin-bottom:12px; }
-  .fmtbar button { padding:6px 9px; font-size:12px; }
-  .fmtbar .seg { display:flex; gap:4px; align-items:center; }
-  .fmtbar input[type=color] { width:30px; height:28px; }
-  .fmtbar input[type=number] { width:52px; padding:5px 6px; }
-  .fmtbar .vline { width:1px; height:22px; background:var(--border); margin:0 2px; }
-
-  details { border:1px solid var(--border); border-radius:10px; margin-bottom:10px; background:var(--panel-2); }
-  details > summary { cursor:pointer; padding:11px 13px; font-size:12px; font-weight:600; letter-spacing:.05em; text-transform:uppercase; color:var(--muted); list-style:none; }
-  details > summary::-webkit-details-marker { display:none; }
-  details > summary::after { content:'+'; float:right; color:var(--muted); }
-  details[open] > summary::after { content:'\2013'; }
-  details .body { padding:6px 13px 14px; }
-  .mini { display:grid; grid-template-columns:1fr 1fr; gap:10px 12px; }
-  .mini .f { display:flex; flex-direction:column; gap:5px; }
-  .mini .f > label { font-size:11px; color:var(--muted); display:flex; justify-content:space-between; }
-  .mini .f > label .val { color:#b9c4be; font-variant-numeric:tabular-nums; }
-  .mini .f select, .mini .f > input { padding:7px 9px; font-size:12.5px; }
-  .rrow { display:flex; gap:8px; align-items:center; }
-  .rrow input[type=range] { flex:1; min-width:0; }
-  .rrow .numbox { width:58px; flex:0 0 auto; padding:6px 7px; }
-  .full { grid-column:1 / -1; }
-
-  .help { color:var(--muted); font-size:11px; line-height:1.5; margin:-2px 0 10px; }
-  .help code { background:var(--panel-2); padding:1px 5px; border-radius:4px; font-size:10.5px; color:#b9c4be; }
-  .grid-2 { display:grid; grid-template-columns:1fr 1fr; gap:9px; }
-  .badge { display:inline-block; background:var(--panel-2); border:1px solid var(--border); padding:2px 7px; border-radius:980px; font-size:10px; font-weight:500; color:var(--muted); text-transform:uppercase; letter-spacing:.04em; }
-
-  .stage { display:flex; flex-direction:column; align-items:center; justify-content:flex-start; padding:24px; overflow:auto; }
-  .toolbar { display:flex; gap:9px; margin-bottom:20px; flex-wrap:wrap; align-items:center; background:var(--panel); padding:10px 14px; border-radius:14px; box-shadow:var(--shadow); }
-  .toolbar > .lbl { font-size:12.5px; color:var(--muted); }
-  .toolbar strong { color:var(--text); }
-  .toolbar .spacer { flex:1; }
-  .toolbar .chk { display:flex; align-items:center; gap:6px; font-size:12px; color:var(--muted); }
-  .preview-wrap { width:432px; height:540px; box-shadow:0 18px 60px rgba(0,0,0,.5); border-radius:14px; overflow:hidden; position:relative; }
-
-  .slide { width:1080px; height:1350px; position:relative; overflow:hidden; transform-origin:top left; font-family:'Space Grotesk',sans-serif; }
-  .slide .wordmark { position:absolute; text-transform:uppercase; white-space:nowrap; }
-  .slide .counter { position:absolute; font-variant-numeric:tabular-nums; white-space:nowrap; }
-  .slide .leftbar { position:absolute; left:0; top:0; bottom:0; }
-  .slide .content { position:absolute; }
-  .slide .content.center { top:50%; transform:translateY(-50%); }
-  .slide .eyebrow { text-transform:uppercase; margin:0; }
-  .slide .title,.slide .heading,.slide .body,.slide .ctaline,.slide .quote,.slide .attribution,
-  .slide .labelA,.slide .textA,.slide .labelB,.slide .textB,.slide .term,.slide .definition,.slide .example,
-  .slide .interrupt,.slide .ikicker,.slide .rkicker,.slide .rtitle { margin:0; white-space:pre-wrap; }
-  .slide .labelA,.slide .labelB,.slide .ikicker,.slide .rkicker { text-transform:uppercase; }
-  .slide .example { font-style:italic; }
-  .slide .quotemark { margin:0; line-height:.7; font-family:'Space Grotesk',serif; }
-  .slide .cmp-div { height:2px; margin:26px 0; border-radius:2px; }
-  .slide .term-rule { border-radius:3px; }
-  .slide .recap-list { list-style:none; margin:0; padding:0; }
-  .slide .recap-item { display:flex; gap:.5em; white-space:pre-wrap; }
-  .slide .recap-item .rmark { flex:0 0 auto; }
-  /* safe-area guides (preview only, never exported) */
-  .slide .guides { position:absolute; inset:0; pointer-events:none; }
-  .slide .guides .box { position:absolute; border:1px dashed rgba(255,255,255,.35); }
-  .slide .guides .vc, .slide .guides .hc { position:absolute; background:rgba(255,255,255,.18); }
-
-  /* in-canvas editing (preview only) */
-  #preview .ce-block { border-radius:3px; outline:2px solid transparent; outline-offset:7px; transition:outline-color .12s ease; }
-  #preview.ce-on .ce-block { cursor:grab; }
-  #preview.ce-on .ce-block:hover { outline-color:rgba(255,255,255,.4); }
-  #preview .ce-block.ce-sel { outline-color:var(--accent); }
-  #preview .ce-block.ce-editing { outline-color:#fff; cursor:text; }
-  #preview .ce-block.ce-drag { cursor:grabbing; }
-  #preview .ce-guide { position:absolute; background:var(--accent-hover); pointer-events:none; z-index:5; }
-  #preview .ce-guide.v { width:2px; top:0; bottom:0; }
-  #preview .ce-guide.h { height:2px; left:0; right:0; }
-  .ce-toolbar { position:fixed; z-index:60; display:none; gap:5px; align-items:center; padding:6px 7px;
-    background:var(--panel); border:1px solid var(--border-strong); border-radius:11px; box-shadow:var(--shadow); }
-  .ce-toolbar.show { display:flex; }
-  .ce-toolbar button { padding:5px 8px; font-size:12px; line-height:1; }
-  .ce-toolbar button.on { background:var(--accent); border-color:var(--accent); color:#fff; }
-  .ce-toolbar input[type=color] { width:28px; height:26px; }
-  .ce-toolbar input[type=number] { width:48px; padding:4px 6px; }
-  .ce-toolbar .vline { width:1px; height:20px; background:var(--border); margin:0 1px; }
-  .ce-toolbar .nudge { display:grid; grid-template-columns:repeat(4,auto); gap:3px; }
-
-  #render-stage { position:fixed; left:-10000px; top:0; }
-  .sidebar::-webkit-scrollbar,.slide-list::-webkit-scrollbar,.stage::-webkit-scrollbar { width:10px; height:10px; }
-  .sidebar::-webkit-scrollbar-thumb,.slide-list::-webkit-scrollbar-thumb,.stage::-webkit-scrollbar-thumb { background:rgba(255,255,255,.14); border-radius:10px; border:2px solid transparent; background-clip:padding-box; }
-</style>
+<link rel="stylesheet" href="editor.css">
+<link rel="stylesheet" href="app.css">
 </head>
 <body>
 
-<aside class="sidebar">
-  <div class="brandbar"><span class="dot" id="brandDot"></span><span class="mark">The Grey Mind</span></div>
-  <p class="sub">Carousel editor · 1080×1350 · 3 pillars</p>
-  <div id="visitBadge" style="display:none;align-items:center;gap:7px;margin:-4px 0 16px;padding:8px 11px;background:var(--panel-2);border:1px solid var(--border);border-radius:var(--radius-sm);">
-    <span style="width:7px;height:7px;border-radius:50%;background:var(--accent);flex-shrink:0;"></span>
-    <span style="font-size:12px;color:var(--muted);">Total visits</span>
-    <strong id="visitCountSidebar" style="font-size:13px;margin-left:auto;font-variant-numeric:tabular-nums;">—</strong>
-  </div>
-
-  <h3>Brand</h3>
-  <div class="row"><label>Wordmark</label><div class="ctrl"><input type="text" id="wordmark" value="THE GREY MIND"></div></div>
-  <div class="row"><label>Handle</label><div class="ctrl"><input type="text" id="handle" value="@_thegreymind_"></div></div>
-
-  <h3>Pillar</h3>
-  <div class="pillars" id="pillars"></div>
-  <div class="help">Pillar = signature colour. Cover + CTA use it as background; body slides go charcoal with a thin edge accent.</div>
-
-  <h3>Slides</h3>
-  <div class="slide-list" id="slideList"></div>
-  <div class="slide-actions">
-    <div class="add-row">
-      <button id="addCover" class="ghost">+ Cover</button>
-      <button id="addBody" class="ghost">+ Body</button>
-      <button id="addQuote" class="ghost">+ Quote</button>
-      <button id="addCompare" class="ghost">+ Compare</button>
-      <button id="addTerm" class="ghost">+ Term</button>
-      <button id="addInterrupt" class="ghost">+ Interrupt</button>
-      <button id="addRecap" class="ghost">+ Recap</button>
-      <button id="addCta" class="ghost">+ CTA</button>
-    </div>
-    <div class="edit-row">
-      <button id="dupSlide" class="ghost">Duplicate</button>
-      <button id="delSlide" class="danger">Delete</button>
-    </div>
-  </div>
-
-  <h3>Selected slide <span class="badge" id="selType"></span></h3>
-  <div class="fmtbar" id="fmtbar">
-    <div class="seg">
-      <button data-wrap="**|**" title="Bold (700)"><b>B</b></button>
-      <button data-wrap="[w=500]|[/w]" title="Medium (500)">M</button>
-      <button data-wrap="[w=300]|[/w]" title="Light (300)">L</button>
-    </div>
-    <div class="vline"></div>
-    <div class="seg"><input type="color" id="fmtColor" value="#F5F5F5" title="Highlight colour"><button id="fmtColorBtn">Colour</button></div>
-    <div class="vline"></div>
-    <div class="seg"><input type="number" id="fmtSize" value="80" min="10" max="200"><button id="fmtSizeBtn">Size</button></div>
-    <div class="vline"></div>
-    <button id="fmtClear" title="Strip styling from selection">Clear</button>
-  </div>
-  <div class="help">Select text, tap a button — it wraps just that word/character. Or type markup:
-    <code>**bold**</code> <code>[w=300]…[/w]</code> <code>[c=#6B1A1A]…[/c]</code> <code>[sz=80]…[/sz]</code>. Title/heading me Enter = manual line-break.</div>
-  <div id="editor"></div>
-
-  <h3>Fine-tune</h3>
-  <details id="typoBox" open>
-    <summary>Typography &amp; line-height</summary>
-    <div class="body"><div class="mini" id="typoGrid"></div></div>
-  </details>
-  <details id="elemBox">
-    <summary>Eyebrow / wordmark / counter (blend)</summary>
-    <div class="body" id="elemBody"></div>
-  </details>
-  <details id="colorBox">
-    <summary>Colours</summary>
-    <div class="body"><div class="mini" id="colorGrid"></div></div>
-  </details>
-  <details id="layoutBox">
-    <summary>Layout &amp; margins</summary>
-    <div class="body"><div class="mini" id="layoutGrid"></div></div>
-  </details>
-
-  <h3>Project</h3>
-  <div class="grid-2">
-    <button id="exportJson" class="ghost">Save JSON</button>
-    <button id="importJson" class="ghost">Load JSON</button>
-  </div>
-  <div class="grid-2" style="margin-top:8px">
-    <button id="resetState" class="ghost">Reset to sample</button>
-    <button id="clearSaved" class="ghost">Clear autosave</button>
-  </div>
-  <input type="file" id="fileInput" accept="application/json" style="display:none">
-</aside>
-
-<main class="stage">
-  <div class="toolbar">
+<!-- ============================ OPTIONS BAR (top) ============================ -->
+<header class="optbar">
+  <div class="brand"><span class="dot" id="brandDot"></span><span class="mark">The Grey Mind</span></div>
+  <span class="vsep"></span>
+  <div class="nav">
+    <button id="prevSlide" class="iconbtn" title="Previous slide (←)"><span class="ico" data-icon="chevron-left" data-size="17"></span></button>
     <span class="lbl">Slide <strong id="previewIdx">1</strong> / <span id="previewTotal">1</span></span>
-    <button id="prevSlide">←</button>
-    <button id="nextSlide">→</button>
-    <button id="undoBtn" class="mini" title="Undo (Ctrl+Z)">↶</button>
-    <button id="redoBtn" class="mini" title="Redo (Ctrl+Y)">↷</button>
-    <label class="chk"><input type="checkbox" id="guidesChk"> Guides</label>
-    <label class="chk"><input type="checkbox" id="canvasChk" checked> Edit on canvas</label>
-    <div class="spacer"></div>
-    <span class="lbl" id="visitWrap" style="display:none">Visits <strong id="visitCount">—</strong></span>
-    <span class="lbl">Format</span>
-    <select id="format" style="width:auto"><option value="png">PNG</option><option value="jpg">JPG</option></select>
-    <button id="dlOne">Download current</button>
-    <button id="dlAll" class="primary">Download all (ZIP)</button>
+    <button id="nextSlide" class="iconbtn" title="Next slide (→)"><span class="ico" data-icon="chevron-right" data-size="17"></span></button>
   </div>
-  <div class="preview-wrap"><div class="slide" id="preview"></div></div>
+  <span class="vsep"></span>
+  <button id="undoBtn" class="iconbtn" title="Undo (Ctrl+Z)"><span class="ico" data-icon="undo" data-size="16"></span></button>
+  <button id="redoBtn" class="iconbtn" title="Redo (Ctrl+Y)"><span class="ico" data-icon="redo" data-size="16"></span></button>
+  <span class="vsep"></span>
+  <label class="chk"><input type="checkbox" id="canvasChk" checked> Edit on canvas</label>
+  <label class="chk"><input type="checkbox" id="guidesChk"> Guides</label>
+
+  <div class="spacer"></div>
+
+  <span class="lbl" id="visitWrap" style="display:none">Visits <strong id="visitCount">—</strong></span>
+  <span class="vsep"></span>
+  <span class="lbl">Format</span>
+  <select id="format"><option value="png">PNG</option><option value="jpg">JPG</option></select>
+  <button id="dlOne">Download current</button>
+  <button id="dlAll" class="primary">Download all (ZIP)</button>
+</header>
+
+<!-- ============================ TOOL RAIL (left) ============================ -->
+<nav class="toolrail" id="toolrail">
+  <button class="tool active" id="toolMove" data-tool="move" title="Move / Select (V)"><span class="ico" data-icon="cursor" data-size="20"></span></button>
+  <button class="tool" id="toolText" data-tool="text" title="Edit text (T)"><span class="ico" data-icon="type" data-size="20"></span></button>
+  <div class="rsep"></div>
+  <div class="flyout-wrap">
+    <button class="tool" id="toolAdd" title="Add slide"><span class="ico" data-icon="plus" data-size="20"></span></button>
+    <div class="flyout" id="addFlyout">
+      <button id="addCover" class="ghost">＋ Cover</button>
+      <button id="addBody" class="ghost">＋ Body</button>
+      <button id="addQuote" class="ghost">＋ Quote</button>
+      <button id="addCompare" class="ghost">＋ Compare</button>
+      <button id="addTerm" class="ghost">＋ Term</button>
+      <button id="addInterrupt" class="ghost">＋ Interrupt</button>
+      <button id="addRecap" class="ghost">＋ Recap</button>
+      <button id="addCta" class="ghost">＋ CTA</button>
+    </div>
+  </div>
+  <div class="spacer"></div>
+</nav>
+
+<!-- ============================ CANVAS WORKSPACE (centre) ============================ -->
+<main class="workspace">
+  <div class="ruler-corner"></div>
+  <canvas class="ruler-h" id="rulerH"></canvas>
+  <canvas class="ruler-v" id="rulerV"></canvas>
+  <div class="viewport" id="viewport">
+    <div class="canvas-stage">
+      <div class="canvas-sizer" id="canvasSizer">
+        <div class="slide" id="preview"></div>
+      </div>
+    </div>
+  </div>
+  <div class="zoombar">
+    <button id="zoomOut" class="iconbtn" title="Zoom out (Ctrl -)"><span class="ico" data-icon="minus" data-size="15"></span></button>
+    <span class="pct" id="zoomPct" title="Reset to fit (F)">100%</span>
+    <button id="zoomIn" class="iconbtn" title="Zoom in (Ctrl +)"><span class="ico" data-icon="plus" data-size="15"></span></button>
+    <button id="zoomFit" title="Fit to screen (F)">Fit</button>
+  </div>
 </main>
 
+<!-- ============================ RIGHT DOCK ============================ -->
+<aside class="dock" id="dock">
+  <div class="dock-resize" id="dockResize"></div>
+
+  <!-- PROPERTIES -->
+  <section class="panel grow-2" id="panelProps">
+    <div class="phead"><span class="tw ico" data-icon="chevron-down" data-size="13"></span><span class="hic ico" data-icon="sliders" data-size="15"></span><span class="grow">Properties</span><span class="badge" id="selType"></span></div>
+    <div class="pbody">
+
+      <!-- Content: the text on this slide -->
+      <details class="sect" id="contentBox" open>
+        <summary><span class="ic ico" data-icon="text" data-size="16"></span><span class="snm">Content</span><span class="shint">text on this slide</span></summary>
+        <div class="body">
+          <div class="fmtbar" id="fmtbar">
+            <div class="seg">
+              <button data-wrap="**|**" title="Bold (700)"><b>B</b></button>
+              <button data-wrap="[w=500]|[/w]" title="Medium (500)">M</button>
+              <button data-wrap="[w=300]|[/w]" title="Light (300)">L</button>
+            </div>
+            <div class="vline"></div>
+            <div class="seg"><input type="color" id="fmtColor" value="#F5F5F5" title="Highlight colour"><button id="fmtColorBtn">Colour</button></div>
+            <div class="vline"></div>
+            <div class="seg"><input type="number" id="fmtSize" value="80" min="10" max="200"><button id="fmtSizeBtn">Size</button></div>
+            <div class="vline"></div>
+            <button id="fmtClear" title="Strip styling from selection">Clear</button>
+          </div>
+          <div class="help">Select text, tap a button — it wraps just that word/character. Or type markup:
+            <code>**bold**</code> <code>[w=300]…[/w]</code> <code>[c=#6B1A1A]…[/c]</code> <code>[sz=80]…[/sz]</code>. Enter = manual line-break.</div>
+          <div id="editor"></div>
+        </div>
+      </details>
+
+      <!-- Typography (collapsed by default) -->
+      <details class="sect" id="typoBox">
+        <summary><span class="ic ico" data-icon="type" data-size="16"></span><span class="snm">Typography</span><span class="shint">size · weight · line-height</span></summary>
+        <div class="body"><div class="mini" id="typoGrid"></div></div>
+      </details>
+
+      <!-- Colours -->
+      <details class="sect" id="colorBox">
+        <summary><span class="ic ico" data-icon="palette" data-size="16"></span><span class="snm">Colours</span><span class="shint">pillars · text · bar</span></summary>
+        <div class="body"><div class="mini" id="colorGrid"></div></div>
+      </details>
+
+      <!-- Element effects -->
+      <details class="sect" id="elemBox">
+        <summary><span class="ic ico" data-icon="blend" data-size="16"></span><span class="snm">Element effects</span><span class="shint">eyebrow · wordmark · counter blend</span></summary>
+        <div class="body" id="elemBody"></div>
+      </details>
+
+      <!-- Layout & margins -->
+      <details class="sect" id="layoutBox">
+        <summary><span class="ic ico" data-icon="frame" data-size="16"></span><span class="snm">Layout &amp; margins</span><span class="shint">margins · vertical shift</span></summary>
+        <div class="body"><div class="mini" id="layoutGrid"></div></div>
+      </details>
+
+      <!-- Pillar -->
+      <details class="sect" id="pillarBox" open>
+        <summary><span class="ic ico" data-icon="columns" data-size="16"></span><span class="snm">Pillar</span><span class="shint">signature colour</span></summary>
+        <div class="body">
+          <div class="pillars" id="pillars"></div>
+          <div class="help">Pillar = signature colour. Cover + CTA use it as background; body slides go charcoal with a thin edge accent.</div>
+        </div>
+      </details>
+
+      <!-- Brand -->
+      <details class="sect" id="brandBox">
+        <summary><span class="ic ico" data-icon="tag" data-size="16"></span><span class="snm">Brand</span><span class="shint">wordmark · handle</span></summary>
+        <div class="body">
+          <div class="row"><label>Wordmark</label><div class="ctrl"><input type="text" id="wordmark" value="THE GREY MIND"></div></div>
+          <div class="row"><label>Handle</label><div class="ctrl"><input type="text" id="handle" value="@_thegreymind_"></div></div>
+        </div>
+      </details>
+
+      <!-- Project -->
+      <details class="sect" id="projectBox">
+        <summary><span class="ic ico" data-icon="save" data-size="16"></span><span class="snm">Project</span><span class="shint">save · load · reset</span></summary>
+        <div class="body">
+          <div class="grid-2">
+            <button id="exportJson" class="ghost">Save JSON</button>
+            <button id="importJson" class="ghost">Load JSON</button>
+          </div>
+          <div class="grid-2" style="margin-top:8px">
+            <button id="resetState" class="ghost">Reset to sample</button>
+            <button id="clearSaved" class="ghost">Clear autosave</button>
+          </div>
+          <input type="file" id="fileInput" accept="application/json" style="display:none">
+        </div>
+      </details>
+    </div>
+  </section>
+
+  <!-- LAYERS -->
+  <section class="panel grow-1" id="panelLayers">
+    <div class="phead"><span class="tw ico" data-icon="chevron-down" data-size="13"></span><span class="hic ico" data-icon="layers" data-size="15"></span><span class="grow">Layers</span><span class="count" id="layerCount"></span></div>
+    <div class="pbody"><div class="layers" id="layersList"></div></div>
+  </section>
+
+  <!-- SLIDES -->
+  <section class="panel grow-1" id="panelSlides">
+    <div class="phead"><span class="tw ico" data-icon="chevron-down" data-size="13"></span><span class="hic ico" data-icon="grid" data-size="15"></span><span class="grow">Slides</span><span class="count" id="slideCount"></span></div>
+    <div class="pbody">
+      <div class="slide-actions" style="margin-bottom:10px">
+        <div class="edit-row">
+          <button id="dupSlide" class="ghost">Duplicate</button>
+          <button id="delSlide" class="danger">Delete</button>
+        </div>
+      </div>
+      <div class="slide-list" id="slideList"></div>
+    </div>
+  </section>
+</aside>
+
+<!-- ============================ STATUS BAR (bottom) ============================ -->
+<footer class="statusbar">
+  <span class="si" id="statusZoom">100%</span>
+  <span class="si" id="statusSel">No selection</span>
+  <div class="spacer"></div>
+  <span class="si" id="visitBadge" style="display:none">Total visits <strong id="visitCountSidebar">—</strong></span>
+  <span class="si"><strong>1080 × 1350</strong></span>
+</footer>
+
+<!-- offscreen render target (export) + floating in-canvas toolbar -->
 <div id="render-stage"><div class="slide" id="renderTarget"></div></div>
 <div class="ce-toolbar" id="ceToolbar"></div>
 
-<script>
-/* =========================================================================
- * The Grey Mind — carousel editor. Single file, no build step.
- *   1. helpers / colour + blend maths
- *   2. markup  (**bold** / [w] [c] [sz])
- *   3. state (+ autosave restore)
- *   4. renderers (wordmark / counter / leftbar + per-type content)
- *   5. editor fields + format toolbar
- *   6. fine-tune grids (sliders) — typography / elements / colours / layout
- *   7. views (list / editor / preview + guides)
- *   8. controls / slide actions
- *   9. history (undo-redo) + autosave
- *  10. export & import
- *  11. init
- * ========================================================================= */
+<script src="js/helpers.js"></script>
+<script src="js/state.js"></script>
+<script src="js/renderers.js"></script>
+<script src="js/editor.js"></script>
+<script src="js/views.js"></script>
+<script src="js/controls.js"></script>
+<script src="js/history.js"></script>
+<script src="js/export.js"></script>
+<script src="js/canvas-edit.js"></script>
+<script src="js/app-shell.js"></script>
+<script src="js/init.js"></script>
 
-// 1. ---------- helpers ----------
-function h(tag, props, ...children) {
-  const el = document.createElement(tag);
-  props = props || {};
-  for (const k in props) {
-    const v = props[k];
-    if (v == null || v === false) continue;
-    if (k === 'class') el.className = v;
-    else if (k === 'html') el.innerHTML = v;
-    else if (k === 'style' && typeof v === 'object') Object.assign(el.style, v);
-    else if (k.startsWith('on') && typeof v === 'function') el.addEventListener(k.slice(2).toLowerCase(), v);
-    else el.setAttribute(k, v === true ? '' : v);
-  }
-  for (const c of children.flat(Infinity)) {
-    if (c == null || c === false) continue;
-    el.appendChild(c instanceof Node ? c : document.createTextNode(String(c)));
-  }
-  return el;
-}
-const $ = (id) => document.getElementById(id);
-const clamp = (n, a, b) => Math.max(a, Math.min(b, n));
-function escapeHtml(s) { return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
-
-function hexToRgb(hex) { const m = /^#?([0-9a-fA-F]{6})$/.exec(hex || ''); if (!m) return [245,245,245]; const n = parseInt(m[1],16); return [(n>>16)&255,(n>>8)&255,n&255]; }
-function rgbToHex(r,g,b) { return '#' + [r,g,b].map(x => clamp(Math.round(x),0,255).toString(16).padStart(2,'0')).join(''); }
-// per-channel blend, inputs 0..1 (b=base/backdrop, s=source/top)
-function blendCh(b, s, mode) {
-  switch (mode) {
-    case 'multiply':    return b*s;
-    case 'screen':      return 1-(1-b)*(1-s);
-    case 'overlay':     return b<0.5 ? 2*b*s : 1-2*(1-b)*(1-s);
-    case 'hard-light':  return s<0.5 ? 2*b*s : 1-2*(1-b)*(1-s);
-    case 'soft-light':  return s<0.5 ? b-(1-2*s)*b*(1-b)
-                                     : b+(2*s-1)*((b<0.25 ? ((16*b-12)*b+4)*b : Math.sqrt(b))-b);
-    case 'color-dodge': return s>=1 ? 1 : clamp(b/(1-s),0,1);
-    case 'lighten':     return Math.max(b,s);
-    case 'darken':      return Math.min(b,s);
-    default:            return s; // normal
-  }
-}
-// flat resulting colour of a `top` colour drawn over solid `bg` with blend `mode` + `opacity`.
-// Export-safe (no mix-blend-mode, which html-to-image drops).
-function blendOver(bgHex, topHex, mode, opacity) {
-  const B = hexToRgb(bgHex).map(x => x/255), S = hexToRgb(topHex).map(x => x/255);
-  const out = [0,1,2].map(i => { const blended = blendCh(B[i], S[i], mode); return (B[i] + (blended - B[i]) * opacity) * 255; });
-  return rgbToHex(out[0], out[1], out[2]);
-}
-const BLEND_MODES = ['normal','overlay','soft-light','multiply','screen','hard-light','color-dodge','lighten','darken'];
-
-// 2. ---------- markup ----------
-function parseMarkup(raw) {
-  let s = escapeHtml(raw == null ? '' : raw);
-  s = s.replace(/\*\*([\s\S]+?)\*\*/g, '<span style="font-weight:700">$1</span>');
-  s = s.replace(/\[w=(\d{3})\]/g, (m,w) => `<span style="font-weight:${w}">`);
-  s = s.replace(/\[c=#?([0-9a-fA-F]{3,8})\]/g, (m,c) => `<span style="color:#${c}">`);
-  s = s.replace(/\[sz=(\d{1,3})\]/g, (m,z) => `<span style="font-size:${z}px">`);
-  s = s.replace(/\[\/(?:w|c|sz)?\]/g, '</span>');
-  return s;
-}
-function rich(tag, cls, text, style) { const n = h(tag, { class: cls, style }); n.innerHTML = parseMarkup(text); return n; }
-
-// 3. ---------- state ----------
-const PILLAR_CATS = {
-  people: ['Dark Psychology','Manipulation','Human Behavior','Reading People','Toxic Patterns','Social Dynamics','Behavior Analysis','Influence','Persuasion','Power Dynamics'],
-  self:   ['Emotional Control','Clarity','Self-Awareness','Overthinking','Identity','Patterns','Emotional Intelligence','Inner Peace','Mental Clarity','Self-Mastery'],
-  power:  ['Money Mindset','Wealth Psychology','Influence','Financial Intelligence','Real-World Leverage','Status','Discipline','Execution','Building Wealth','Self-Worth'],
-};
-function defaultState() {
-  return {
-    v: 2,
-    wordmark: 'THE GREY MIND',
-    handle: '@_thegreymind_',
-    pillar: 'people',
-    pillars: { power:{label:'POWER',accent:'#173D2C'}, self:{label:'SELF',accent:'#18293F'}, people:{label:'PEOPLE',accent:'#6B1A1A'} },
-    colors: { bodyBg:'#0a0a0a', text:'#F5F5F5', barShow:true, barWidth:8 },
-    // each chrome element: own colour + opacity + blend mode (export-safe flat colour computed)
-    elements: {
-      eyebrow:  { color:'#F5F5F5', opacity:0.55, blend:'overlay' },
-      wordmark: { color:'#F5F5F5', opacity:0.42, blend:'normal'  },
-      counter:  { color:'#F5F5F5', opacity:0.42, blend:'normal'  },
-    },
-    type: {
-      wordmark:{size:28,weight:400,track:200},
-      counter: {size:28,weight:400,track:0},
-      eyebrow: {size:32,weight:300,track:250,gap:50},
-      title:   {size:95,weight:500,lh:105,track:0},
-      heading: {size:52,weight:700,lh:46,track:0,gap:34},
-      body:    {size:32,weight:500,lh:46,track:0},
-      cta:     {size:50,weight:500,lh:62,track:0},
-      quote:   {size:78,weight:500,lh:92,track:0},
-      attribution:{size:30,weight:400,track:120,gap:46},
-      quotemark:{size:150,weight:500,gap:6},
-      compareLabel:{size:26,weight:700,track:140,gap:14},
-      compareText: {size:36,weight:400,lh:46,track:0},
-      term:    {size:84,weight:700,lh:88,track:0,ruleW:120,gap:30},
-      definition:{size:36,weight:400,lh:48,track:0},
-      example: {size:28,weight:400,track:0,gap:30},
-      interruptKicker:{size:30,weight:700,track:200,gap:30},
-      interrupt:{size:104,weight:700,lh:104,track:0},
-      recapKicker:{size:30,weight:700,track:200,gap:24},
-      recapTitle: {size:48,weight:600,lh:54,track:0,gap:40},
-      recapItem:  {size:34,weight:400,lh:42,track:0,gap:22},
-    },
-    layout: { margin:80, bodyTop:360, coverShift:0, ctaShift:0, quoteShift:0, compareTop:300, termTop:300, interruptShift:0, recapTop:240 },
-    ui: { guides:false, canvasEdit:true },
-    slides: [
-      { type:'cover', eyebrow:'Social Dynamics', title:'**The Psychology Behind** Why You’re Liked More When You Care Less.' },
-      { type:'body', heading:'let’s be clear about what ”caring less” actually means.',
-        body:'It is not coldness. It is not pretending people don’t matter.\n\nIt means your sense of self isn’t hanging on whether this specific person approves of you right now.\n\nThat’s it. That’s the whole thing.\n\nAnd that distinction changes everything that follows.' },
-      { type:'body', heading:'so where does the “care less” effect actually come from?',
-        body:'When you need a person to like you, they feel it.\n\nThe slight over-explaining. The quick agreement. The laugh that comes a beat too early.\n\nNone of it is loud. All of it registers.' },
-      { type:'term', eyebrow:'Social Dynamics', term:'Outcome dependence',
-        definition:'Needing a specific reaction from someone before you can feel okay. It quietly hands them the controls.',
-        example:'e.g. re-reading a text to check if they “still” like you.' },
-      { type:'compare', heading:'Caring less, in one contrast:',
-        labelA:'The trap', textA:'You explain yourself\nuntil they finally approve.', colorA:'#C8553D',
-        labelB:'The move', textB:'You say it once —\nand let the silence hold.', colorB:'#3E9E6E' },
-      { type:'interrupt', kicker:'Read this twice', line:'You don’t need them to **agree.**\nYou need you to **decide.**' },
-      { type:'quote', eyebrow:'Social Dynamics', quote:'Detachment isn’t the absence of care.\nIt’s the **presence of self.**', attribution:'— Lucid' },
-      { type:'recap', kicker:'Save this', title:'The whole thing, in four lines:', items:['Caring less = self, not coldness.','Neediness leaks — people feel it.','Outcome dependence hands them control.','Say it once. Let the silence hold.'] },
-      { type:'cta', text:'Save this. You’ll need it the next time you catch yourself trying too hard.' },
-    ],
-    current: 0,
-  };
-}
-let state = defaultState();
-// Backfill keys added in later versions onto an older saved/loaded state (e.g. quote typography).
-function migrate(s) {
-  const d = defaultState();
-  const mergeMap = (key) => { s[key] = Object.assign({}, d[key], s[key] || {}); for (const k in d[key]) if (d[key][k] && typeof d[key][k] === 'object') s[key][k] = Object.assign({}, d[key][k], s[key][k] || {}); };
-  ['type', 'elements'].forEach(mergeMap);
-  s.layout = Object.assign({}, d.layout, s.layout || {});
-  s.colors = Object.assign({}, d.colors, s.colors || {});
-  s.pillars = Object.assign({}, d.pillars, s.pillars || {});
-  if (!s.ui) s.ui = {};
-  if (s.ui.canvasEdit === undefined) s.ui.canvasEdit = true;
-  return s;
-}
-function activeSlide() { return state.slides[state.current]; }
-function pillarAccent() { return state.pillars[state.pillar].accent; }
-const DARK_TYPES = ['body', 'compare', 'term'];          // charcoal bg + left accent bar
-const TOP_TYPES = ['body', 'compare', 'term', 'recap'];  // top-aligned (vs vertically centred)
-function slideBg(slide) { return DARK_TYPES.includes(slide.type) ? state.colors.bodyBg : pillarAccent(); }
-function track(t) { return (t || 0) / 1000 + 'em'; }
-function elColor(role, slide) { const e = state.elements[role]; return blendOver(slideBg(slide), e.color, e.blend, e.opacity); }
-
-// 4. ---------- renderers ----------
-function chromeWordmark(slide) {
-  const t = state.type.wordmark, m = state.layout.margin;
-  return h('div', { class:'wordmark', style:{ left:m+'px', top:m+'px', fontSize:t.size+'px', fontWeight:t.weight, letterSpacing:track(t.track), color:elColor('wordmark', slide) } }, state.wordmark);
-}
-function chromeCounter(slide, idx, total) {
-  const t = state.type.counter, m = state.layout.margin;
-  const label = `${String(idx+1).padStart(2,'0')}/${String(total).padStart(2,'0')}`;
-  return h('div', { class:'counter', style:{ right:m+'px', bottom:m+'px', fontSize:t.size+'px', fontWeight:t.weight, letterSpacing:track(t.track), color:elColor('counter', slide) } }, label);
-}
-function leftBar() { return state.colors.barShow ? h('div', { class:'leftbar', style:{ width:state.colors.barWidth+'px', background:pillarAccent() } }) : null; }
-
-function eyebrowEl(slide) {
-  const ty = state.type.eyebrow;
-  return h('p', { class:'eyebrow', style:{ fontSize:ty.size+'px', fontWeight:ty.weight, letterSpacing:track(ty.track), marginBottom:ty.gap+'px', color:elColor('eyebrow', slide) } }, slide.eyebrow.trim());
-}
-const Views = {
-  cover(slide, content) {
-    const ty = state.type;
-    if (slide.eyebrow && slide.eyebrow.trim()) content.appendChild(eyebrowEl(slide));
-    content.appendChild(rich('h1','title', slide.title, { fontSize:ty.title.size+'px', fontWeight:ty.title.weight, lineHeight:ty.title.lh+'px', letterSpacing:track(ty.title.track), color:state.colors.text }));
-  },
-  body(slide, content) {
-    const ty = state.type;
-    content.appendChild(rich('h2','heading', slide.heading, { fontSize:ty.heading.size+'px', fontWeight:ty.heading.weight, lineHeight:ty.heading.lh+'px', letterSpacing:track(ty.heading.track), marginBottom:ty.heading.gap+'px', color:state.colors.text }));
-    content.appendChild(rich('p','body', slide.body, { fontSize:ty.body.size+'px', fontWeight:ty.body.weight, lineHeight:ty.body.lh+'px', letterSpacing:track(ty.body.track), color:state.colors.text }));
-  },
-  cta(slide, content) {
-    const ty = state.type;
-    if (slide.eyebrow && slide.eyebrow.trim()) content.appendChild(eyebrowEl(slide));
-    content.appendChild(rich('p','ctaline', slide.text, { fontSize:ty.cta.size+'px', fontWeight:ty.cta.weight, lineHeight:ty.cta.lh+'px', letterSpacing:track(ty.cta.track), color:state.colors.text }));
-  },
-  quote(slide, content) {
-    const ty = state.type;
-    if (slide.eyebrow && slide.eyebrow.trim()) content.appendChild(eyebrowEl(slide));
-    if (ty.quotemark.size > 0)
-      content.appendChild(h('div', { class:'quotemark', style:{ fontSize:ty.quotemark.size+'px', fontWeight:ty.quotemark.weight, marginBottom:ty.quotemark.gap+'px', color:elColor('eyebrow', slide) } }, '“'));
-    content.appendChild(rich('p','quote', slide.quote, { fontSize:ty.quote.size+'px', fontWeight:ty.quote.weight, lineHeight:ty.quote.lh+'px', letterSpacing:track(ty.quote.track), color:state.colors.text }));
-    if (slide.attribution && slide.attribution.trim())
-      content.appendChild(rich('p','attribution', slide.attribution, { fontSize:ty.attribution.size+'px', fontWeight:ty.attribution.weight, letterSpacing:track(ty.attribution.track), marginTop:ty.attribution.gap+'px', color:elColor('eyebrow', slide) }));
-  },
-  compare(slide, content) {
-    const ty = state.type, cA = slide.colorA || '#C8553D', cB = slide.colorB || '#3E9E6E';
-    if (slide.heading && slide.heading.trim())
-      content.appendChild(rich('h2','heading', slide.heading, { fontSize:ty.heading.size+'px', fontWeight:ty.heading.weight, lineHeight:ty.heading.lh+'px', letterSpacing:track(ty.heading.track), marginBottom:'30px', color:state.colors.text }));
-    const half = (lblCls, txtCls, label, txt, color) => {
-      if (label != null && String(label).trim())
-        content.appendChild(rich('p', lblCls, label, { fontSize:ty.compareLabel.size+'px', fontWeight:ty.compareLabel.weight, letterSpacing:track(ty.compareLabel.track), marginBottom:ty.compareLabel.gap+'px', color }));
-      content.appendChild(rich('p', txtCls, txt, { fontSize:ty.compareText.size+'px', fontWeight:ty.compareText.weight, lineHeight:ty.compareText.lh+'px', letterSpacing:track(ty.compareText.track), color:state.colors.text }));
-    };
-    half('labelA', 'textA', slide.labelA, slide.textA, cA);
-    content.appendChild(h('div', { class:'cmp-div', style:{ background:elColor('eyebrow', slide) } }));
-    half('labelB', 'textB', slide.labelB, slide.textB, cB);
-  },
-  term(slide, content) {
-    const ty = state.type;
-    if (slide.eyebrow && slide.eyebrow.trim()) content.appendChild(eyebrowEl(slide));
-    content.appendChild(rich('h2','term', slide.term, { fontSize:ty.term.size+'px', fontWeight:ty.term.weight, lineHeight:ty.term.lh+'px', letterSpacing:track(ty.term.track), color:state.colors.text }));
-    if (ty.term.ruleW > 0)
-      content.appendChild(h('div', { class:'term-rule', style:{ width:ty.term.ruleW+'px', height:'6px', background:pillarAccent(), marginTop:'26px', marginBottom:ty.term.gap+'px' } }));
-    content.appendChild(rich('p','definition', slide.definition, { fontSize:ty.definition.size+'px', fontWeight:ty.definition.weight, lineHeight:ty.definition.lh+'px', letterSpacing:track(ty.definition.track), color:state.colors.text }));
-    if (slide.example && slide.example.trim())
-      content.appendChild(rich('p','example', slide.example, { fontSize:ty.example.size+'px', fontWeight:ty.example.weight, letterSpacing:track(ty.example.track), marginTop:ty.example.gap+'px', color:elColor('eyebrow', slide) }));
-  },
-  interrupt(slide, content) {
-    const ty = state.type;
-    if (slide.kicker && slide.kicker.trim())
-      content.appendChild(rich('p','ikicker', slide.kicker, { fontSize:ty.interruptKicker.size+'px', fontWeight:ty.interruptKicker.weight, letterSpacing:track(ty.interruptKicker.track), marginBottom:ty.interruptKicker.gap+'px', color:elColor('eyebrow', slide) }));
-    content.appendChild(rich('p','interrupt', slide.line, { fontSize:ty.interrupt.size+'px', fontWeight:ty.interrupt.weight, lineHeight:ty.interrupt.lh+'px', letterSpacing:track(ty.interrupt.track), color:state.colors.text }));
-  },
-  recap(slide, content) {
-    const ty = state.type;
-    if (slide.kicker && slide.kicker.trim())
-      content.appendChild(rich('p','rkicker', slide.kicker, { fontSize:ty.recapKicker.size+'px', fontWeight:ty.recapKicker.weight, letterSpacing:track(ty.recapKicker.track), marginBottom:ty.recapKicker.gap+'px', color:elColor('eyebrow', slide) }));
-    if (slide.title && slide.title.trim())
-      content.appendChild(rich('h2','rtitle', slide.title, { fontSize:ty.recapTitle.size+'px', fontWeight:ty.recapTitle.weight, lineHeight:ty.recapTitle.lh+'px', letterSpacing:track(ty.recapTitle.track), color:state.colors.text }));
-    const list = h('ul', { class:'recap-list', style:{ marginTop:ty.recapTitle.gap+'px' } });
-    (slide.items || []).forEach(it => {
-      if (!String(it).trim()) return;
-      const li = h('li', { class:'recap-item', style:{ fontSize:ty.recapItem.size+'px', fontWeight:ty.recapItem.weight, lineHeight:ty.recapItem.lh+'px', letterSpacing:track(ty.recapItem.track), marginBottom:ty.recapItem.gap+'px', color:state.colors.text } });
-      li.appendChild(h('span', { class:'rmark', style:{ color:elColor('eyebrow', slide) } }, '—'));
-      const txt = h('span'); txt.innerHTML = parseMarkup(it); li.appendChild(txt);
-      list.appendChild(li);
-    });
-    content.appendChild(list);
-  },
-};
-function renderSlideInto(el, slide, opts = {}) {
-  const m = state.layout.margin;
-  el.style.background = slideBg(slide);
-  el.style.fontFamily = "'Space Grotesk', sans-serif";
-  el.innerHTML = '';
-  const idx = (opts.index != null) ? opts.index : state.current;
-  const total = (opts.total != null) ? opts.total : state.slides.length;
-  if (DARK_TYPES.includes(slide.type)) { const b = leftBar(); if (b) el.appendChild(b); }
-  const wm = chromeWordmark(slide);
-  const centered = !TOP_TYPES.includes(slide.type);
-  const shift = slide.type === 'cover' ? state.layout.coverShift : slide.type === 'cta' ? state.layout.ctaShift : slide.type === 'quote' ? state.layout.quoteShift : slide.type === 'interrupt' ? state.layout.interruptShift : 0;
-  const tops = { compare: state.layout.compareTop, term: state.layout.termTop, recap: state.layout.recapTop };
-  const topPx = (tops[slide.type] || state.layout.bodyTop) + 'px';
-  const content = h('div', { class:'content' + (centered ? ' center' : ''), style:{ left:m+'px', right:m+'px', top:centered ? `calc(50% + ${shift}px)` : topPx } });
-  (Views[slide.type] || Views.body)(slide, content);
-  const ct = chromeCounter(slide, idx, total);
-  if (opts.interactive) { markEditable(content, slide); tagChrome(wm, 'wordmark'); tagChrome(ct, 'counter'); }
-  el.appendChild(wm);
-  el.appendChild(content);
-  el.appendChild(ct);
-}
-// class on the rendered block → the slide property it edits
-const BLOCK_FIELD = { title:'title', heading:'heading', body:'body', ctaline:'text', eyebrow:'eyebrow', quote:'quote', attribution:'attribution', labelA:'labelA', textA:'textA', labelB:'labelB', textB:'textB', term:'term', definition:'definition', example:'example', ikicker:'kicker', interrupt:'line', rkicker:'kicker', rtitle:'title' };
-const BLOCK_CLASSES = Object.keys(BLOCK_FIELD);
-function applyOffset(el, p) { if (p && (p.x || p.y)) el.style.transform = `${el.style.transform ? el.style.transform + ' ' : ''}translate(${p.x}px, ${p.y}px)`; }
-function markEditable(content, slide) {
-  content.querySelectorAll('.' + BLOCK_CLASSES.join(',.')).forEach(b => {
-    const cls = BLOCK_CLASSES.find(c => b.classList.contains(c));
-    const field = BLOCK_FIELD[cls];
-    b.classList.add('ce-block'); b.dataset.field = field;
-    applyOffset(b, slide.pos && slide.pos[field]);
-  });
-}
-function tagChrome(el, field) {
-  el.classList.add('ce-block'); el.dataset.field = field;
-  applyOffset(el, state.layout.pos && state.layout.pos[field]);
-}
-
-// 5. ---------- editor fields + format toolbar ----------
-let lastField = null;
-function field(label, value, oninput, opts = {}) {
-  const ta = h('textarea', { oninput:e => oninput(e.target.value), onfocus:e => { lastField = e.target; } });
-  if (opts.placeholder) ta.setAttribute('placeholder', opts.placeholder);
-  if (opts.minHeight) ta.style.minHeight = opts.minHeight + 'px';
-  ta.value = value || '';
-  return h('div', { class:'row' }, h('label', {}, label), h('div', { class:'ctrl' }, ta));
-}
-function datalistField(label, value, listId, options, oninput) {
-  const dl = h('datalist', { id:listId }, ...options.map(o => h('option', { value:o })));
-  const inp = h('input', { type:'text', list:listId, value:value || '', oninput:e => oninput(e.target.value), onfocus:e => { lastField = e.target; } });
-  return h('div', { class:'row' }, h('label', {}, label), h('div', { class:'ctrl' }, inp, dl));
-}
-function focusFirstField() { const el = $('editor').querySelector('textarea, input[type=text]'); if (el) { el.focus(); lastField = el; } }
-function wrapSelection(prefix, suffix) {
-  if (!lastField || !lastField.isConnected) focusFirstField();
-  const ta = lastField; if (!ta) return;
-  const s = ta.selectionStart ?? ta.value.length, e = ta.selectionEnd ?? ta.value.length;
-  const val = ta.value, sel = val.slice(s, e) || 'text';
-  ta.value = val.slice(0, s) + prefix + sel + suffix + val.slice(e);
-  ta.dispatchEvent(new Event('input', { bubbles:true }));
-  ta.focus();
-  ta.selectionStart = s + prefix.length; ta.selectionEnd = s + prefix.length + sel.length;
-}
-function stripSelection() {
-  const ta = lastField; if (!ta) return;
-  const s = ta.selectionStart, e = ta.selectionEnd; if (s === e) return;
-  const cleaned = ta.value.slice(s, e).replace(/\*\*/g, '').replace(/\[(?:w=\d{3}|c=#?[0-9a-fA-F]{3,8}|sz=\d{1,3}|\/(?:w|c|sz)?)\]/g, '');
-  ta.value = ta.value.slice(0, s) + cleaned + ta.value.slice(e);
-  ta.dispatchEvent(new Event('input', { bubbles:true }));
-  ta.focus();
-}
-function bindFormatBar() {
-  document.querySelectorAll('#fmtbar [data-wrap]').forEach(btn => {
-    const [pre, suf] = btn.getAttribute('data-wrap').split('|');
-    btn.onmousedown = e => e.preventDefault();
-    btn.onclick = () => wrapSelection(pre, suf);
-  });
-  ['fmtColorBtn','fmtSizeBtn','fmtClear'].forEach(id => { $(id).onmousedown = e => e.preventDefault(); });
-  $('fmtColorBtn').onclick = () => wrapSelection(`[c=${$('fmtColor').value}]`, '[/c]');
-  $('fmtSizeBtn').onclick  = () => wrapSelection(`[sz=${$('fmtSize').value}]`, '[/sz]');
-  $('fmtClear').onclick    = stripSelection;
-}
-
-const Panels = {
-  cover(s) {
-    return [
-      datalistField('Eyebrow', s.eyebrow, 'cats-cover', PILLAR_CATS[state.pillar], v => { s.eyebrow = v; renderPreview(); }),
-      h('div', { class:'help' }, 'Category label above the title (auto ALL-CAPS). Suggestions match the pillar.'),
-      field('Title', s.title, v => { s.title = v; renderPreview(); renderSlideList(); }, { minHeight:90 }),
-    ];
-  },
-  body(s) {
-    return [
-      field('Heading', s.heading, v => { s.heading = v; renderPreview(); renderSlideList(); }, { minHeight:70 }),
-      field('Body', s.body, v => { s.body = v; renderPreview(); }, { minHeight:150 }),
-      h('div', { class:'help' }, 'Leave a blank line between paragraphs for the airy spacing.'),
-    ];
-  },
-  cta(s) {
-    return [
-      datalistField('Eyebrow', s.eyebrow, 'cats-cta', PILLAR_CATS[state.pillar], v => { s.eyebrow = v; renderPreview(); }),
-      field('CTA line', s.text, v => { s.text = v; renderPreview(); renderSlideList(); }, { minHeight:90 }),
-      h('div', { class:'help' }, 'Closing line on the pillar-colour background. One clear action — never desperate.'),
-    ];
-  },
-  quote(s) {
-    return [
-      datalistField('Eyebrow', s.eyebrow, 'cats-quote', PILLAR_CATS[state.pillar], v => { s.eyebrow = v; renderPreview(); }),
-      field('Quote', s.quote, v => { s.quote = v; renderPreview(); renderSlideList(); }, { minHeight:110 }),
-      field('Attribution', s.attribution, v => { s.attribution = v; renderPreview(); }, { minHeight:44 }),
-      h('div', { class:'help' }, 'A single statement on the pillar colour — one breath. Attribution optional (e.g. “— Lucid”). The big “ mark is decorative; size it under Typography.'),
-    ];
-  },
-  compare(s) {
-    const colorRow = (label, key, def) => {
-      const c = h('input', { type:'color', value:s[key] || def });
-      c.addEventListener('input', () => { s[key] = c.value; renderPreview(); });
-      return h('div', { class:'row' }, h('label', {}, label), h('div', { class:'ctrl' }, c));
-    };
-    return [
-      field('Heading', s.heading, v => { s.heading = v; renderPreview(); renderSlideList(); }, { minHeight:56 }),
-      field('Label A', s.labelA, v => { s.labelA = v; renderPreview(); }, { minHeight:38 }),
-      field('Text A', s.textA, v => { s.textA = v; renderPreview(); }, { minHeight:64 }),
-      colorRow('Colour A', 'colorA', '#C8553D'),
-      field('Label B', s.labelB, v => { s.labelB = v; renderPreview(); }, { minHeight:38 }),
-      field('Text B', s.textB, v => { s.textB = v; renderPreview(); }, { minHeight:64 }),
-      colorRow('Colour B', 'colorB', '#3E9E6E'),
-      h('div', { class:'help' }, 'A two-part contrast (the trap vs the move) on charcoal. Red/green by default — recolour each side as you like.'),
-    ];
-  },
-  term(s) {
-    return [
-      datalistField('Eyebrow', s.eyebrow, 'cats-term', PILLAR_CATS[state.pillar], v => { s.eyebrow = v; renderPreview(); }),
-      field('Term', s.term, v => { s.term = v; renderPreview(); renderSlideList(); }, { minHeight:46 }),
-      field('Definition', s.definition, v => { s.definition = v; renderPreview(); }, { minHeight:90 }),
-      field('Example', s.example, v => { s.example = v; renderPreview(); }, { minHeight:46 }),
-      h('div', { class:'help' }, 'Define one concept on charcoal. The accent rule under the term uses the pillar colour. Example (optional) renders in muted italic.'),
-    ];
-  },
-  interrupt(s) {
-    return [
-      field('Kicker', s.kicker, v => { s.kicker = v; renderPreview(); }, { minHeight:38 }),
-      field('Line', s.line, v => { s.line = v; renderPreview(); renderSlideList(); }, { minHeight:90 }),
-      h('div', { class:'help' }, 'A jolt mid-carousel — short and imperative, on the pillar colour. Keep it to one breath; let it reset attention.'),
-    ];
-  },
-  recap(s) {
-    const autofill = h('button', { class:'ghost mini', onclick:() => {
-      s.items = state.slides.filter(x => ['body','term','compare'].includes(x.type))
-        .map(x => x.type === 'term' ? x.term : x.type === 'compare' ? (x.heading || x.labelA) : x.heading)
-        .filter(Boolean);
-      renderEditor(); renderPreview(); renderSlideList();
-    } }, 'Auto-fill from slides');
-    return [
-      field('Kicker', s.kicker, v => { s.kicker = v; renderPreview(); }, { minHeight:38 }),
-      field('Title', s.title, v => { s.title = v; renderPreview(); renderSlideList(); }, { minHeight:48 }),
-      field('Items (one per line)', (s.items || []).join('\n'), v => { s.items = v.split('\n'); renderPreview(); }, { minHeight:140 }),
-      h('div', { class:'row' }, h('label', {}, ''), h('div', { class:'ctrl' }, autofill)),
-      h('div', { class:'help' }, 'A “save this” recap on the pillar colour — one takeaway per line (markup works per line). Kicker + title are also editable on the canvas; the list is edited here.'),
-    ];
-  },
-};
-
-// 6. ---------- fine-tune grids (slider + number) ----------
-function rangeF(label, obj, key, min, max, step, oninput) {
-  const val = h('span', { class:'val' }, obj[key]);
-  const r = h('input', { type:'range', min, max, step, value:obj[key] });
-  const n = h('input', { type:'number', min, max, step, value:obj[key], class:'numbox' });
-  const set = v => { const nv = +v; obj[key] = nv; r.value = nv; n.value = nv; val.textContent = nv; oninput(); };
-  r.addEventListener('input', () => set(r.value));
-  n.addEventListener('input', () => set(n.value));
-  return h('div', { class:'f' }, h('label', {}, label, val), h('div', { class:'rrow' }, r, n));
-}
-function selF(label, obj, key, options, oninput) {
-  const sel = h('select', { onchange:e => { obj[key] = isNaN(+e.target.value) ? e.target.value : +e.target.value; oninput(); } },
-    ...options.map(o => h('option', { value:o, selected:String(obj[key]) === String(o) }, o)));
-  return h('div', { class:'f' }, h('label', {}, label), sel);
-}
-function colorF(label, obj, key, oninput) {
-  const c = h('input', { type:'color', value:obj[key], style:{ width:'100%', height:'34px' } });
-  c.addEventListener('input', () => { obj[key] = c.value; oninput(); });
-  return h('div', { class:'f' }, h('label', {}, label), c);
-}
-const WEIGHTS = [300,400,500,600,700];
-function renderTypoGrid() {
-  const g = $('typoGrid'); g.innerHTML = ''; const T = state.type; const up = renderPreview;
-  const add = (...n) => n.forEach(x => g.appendChild(x));
-  add(rangeF('Title size', T.title,'size',40,160,1,up),        selF('Title weight', T.title,'weight',WEIGHTS,up));
-  add(rangeF('Title line-height', T.title,'lh',50,180,1,up),   rangeF('Eyebrow→title gap', T.eyebrow,'gap',0,160,2,up));
-  add(rangeF('Eyebrow size', T.eyebrow,'size',16,60,1,up),     rangeF('Eyebrow tracking', T.eyebrow,'track',0,500,5,up));
-  add(rangeF('Heading size', T.heading,'size',24,100,1,up),    selF('Heading weight', T.heading,'weight',WEIGHTS,up));
-  add(rangeF('Heading line-height', T.heading,'lh',24,140,1,up), rangeF('Heading→body gap', T.heading,'gap',0,120,2,up));
-  add(rangeF('Body size', T.body,'size',16,72,1,up),           selF('Body weight', T.body,'weight',WEIGHTS,up));
-  add(rangeF('Body line-height', T.body,'lh',20,120,1,up),     rangeF('Body tracking', T.body,'track',0,300,5,up));
-  add(rangeF('CTA size', T.cta,'size',24,120,1,up),            selF('CTA weight', T.cta,'weight',WEIGHTS,up));
-  add(rangeF('CTA line-height', T.cta,'lh',24,160,1,up),       rangeF('Wordmark size', T.wordmark,'size',14,48,1,up));
-  add(rangeF('Wordmark tracking', T.wordmark,'track',0,500,5,up), rangeF('Counter size', T.counter,'size',14,48,1,up));
-  add(rangeF('Quote size', T.quote,'size',32,140,1,up),         selF('Quote weight', T.quote,'weight',WEIGHTS,up));
-  add(rangeF('Quote line-height', T.quote,'lh',36,180,1,up),    rangeF('Quote mark size', T.quotemark,'size',0,260,2,up));
-  add(rangeF('Attribution size', T.attribution,'size',16,60,1,up), rangeF('Attribution gap', T.attribution,'gap',0,120,2,up));
-  add(rangeF('Compare label size', T.compareLabel,'size',16,44,1,up), selF('Compare label weight', T.compareLabel,'weight',WEIGHTS,up));
-  add(rangeF('Compare text size', T.compareText,'size',20,64,1,up),   rangeF('Compare text line-height', T.compareText,'lh',24,90,1,up));
-  add(rangeF('Term size', T.term,'size',40,140,1,up),                selF('Term weight', T.term,'weight',WEIGHTS,up));
-  add(rangeF('Term rule width', T.term,'ruleW',0,400,5,up),          rangeF('Term→def gap', T.term,'gap',0,120,2,up));
-  add(rangeF('Definition size', T.definition,'size',20,64,1,up),     rangeF('Definition line-height', T.definition,'lh',24,90,1,up));
-  add(rangeF('Example size', T.example,'size',16,48,1,up),           rangeF('Example gap', T.example,'gap',0,120,2,up));
-  add(rangeF('Interrupt size', T.interrupt,'size',48,180,1,up),      selF('Interrupt weight', T.interrupt,'weight',WEIGHTS,up));
-  add(rangeF('Interrupt line-height', T.interrupt,'lh',48,200,1,up), rangeF('Interrupt kicker size', T.interruptKicker,'size',16,60,1,up));
-  add(rangeF('Recap title size', T.recapTitle,'size',28,90,1,up),    rangeF('Recap title line-height', T.recapTitle,'lh',30,110,1,up));
-  add(rangeF('Recap item size', T.recapItem,'size',20,60,1,up),      rangeF('Recap item gap', T.recapItem,'gap',0,80,2,up));
-}
-function renderElements() {
-  const box = $('elemBody'); box.innerHTML = '';
-  ['eyebrow','wordmark','counter'].forEach(role => {
-    const e = state.elements[role]; const up = renderPreview;
-    const grid = h('div', { class:'mini', style:{ marginBottom:'12px' } },
-      h('div', { class:'f full', style:{ color:'var(--text)', fontSize:'12px', fontWeight:'600', textTransform:'capitalize' } }, role),
-      colorF('Colour', e,'color',up),
-      selF('Blend', e,'blend',BLEND_MODES,up),
-      rangeF('Opacity', e,'opacity',0,1,0.02,up),
-    );
-    box.appendChild(grid);
-  });
-}
-function renderColorGrid() {
-  const g = $('colorGrid'); g.innerHTML = ''; const C = state.colors; const up = () => { renderPreview(); renderPillars(); };
-  const add = (...n) => n.forEach(x => g.appendChild(x));
-  add(colorF('POWER', state.pillars.power,'accent',up),  colorF('SELF', state.pillars.self,'accent',up));
-  add(colorF('PEOPLE', state.pillars.people,'accent',up), colorF('Body bg', C,'bodyBg',renderPreview));
-  add(colorF('Text', C,'text',renderPreview),            rangeF('Left bar width', C,'barWidth',0,40,1,renderPreview));
-}
-function renderLayoutGrid() {
-  const g = $('layoutGrid'); g.innerHTML = ''; const L = state.layout; const up = renderPreview;
-  const add = (...n) => n.forEach(x => g.appendChild(x));
-  add(rangeF('Margin', L,'margin',20,160,2,up),       rangeF('Body top', L,'bodyTop',100,1000,5,up));
-  add(rangeF('Cover Y shift', L,'coverShift',-400,400,5,up), rangeF('CTA Y shift', L,'ctaShift',-400,400,5,up));
-}
-function rebuildGrids() { renderTypoGrid(); renderElements(); renderColorGrid(); renderLayoutGrid(); }
-
-// 7. ---------- views ----------
-function renderPillars() {
-  const box = $('pillars'); box.innerHTML = '';
-  ['people','self','power'].forEach(key => {
-    const p = state.pillars[key];
-    box.appendChild(h('div', { class:'pillar' + (state.pillar === key ? ' active' : ''), onclick:() => { state.pillar = key; renderAll(); } },
-      h('div', { class:'sw', style:{ background:p.accent } }),
-      h('div', { class:'nm' }, p.label, h('small', {}, p.accent.toUpperCase()))));
-  });
-  $('brandDot').style.background = pillarAccent();
-}
-function plain(t) { return (t || '').replace(/\*\*|\[\/?[a-z]*=?[^\]]*\]/g, ''); }
-function renderSlideList() {
-  const list = $('slideList'); list.innerHTML = '';
-  state.slides.forEach((s, i) => {
-    const labels = { cover:s.title, cta:s.text, quote:s.quote, compare:(s.heading || s.labelA), term:s.term, interrupt:(s.line || s.kicker), recap:(s.title || s.kicker), body:s.heading };
-    const label = labels[s.type] || `(${s.type})`;
-    list.appendChild(h('div', { class:'slide-item' + (i === state.current ? ' active' : ''), onclick:() => { state.current = i; renderAll(); } },
-      h('span', { class:'idx' }, String(i+1).padStart(2,'0')),
-      h('span', { class:'label' }, plain(label)),
-      h('span', { class:'badge' }, s.type)));
-  });
-}
-function renderEditor() {
-  const ed = $('editor'); ed.innerHTML = '';
-  if (!state.slides.length) return;
-  const s = activeSlide();
-  $('selType').textContent = s.type;
-  (Panels[s.type] || Panels.body)(s).forEach(r => ed.appendChild(r));
-}
-function guidesOverlay() {
-  const m = state.layout.margin;
-  return h('div', { class:'guides' },
-    h('div', { class:'box', style:{ left:m+'px', top:m+'px', right:m+'px', bottom:m+'px' } }),
-    h('div', { class:'vc', style:{ left:'50%', top:0, bottom:0, width:'1px' } }),
-    h('div', { class:'hc', style:{ top:'50%', left:0, right:0, height:'1px' } }));
-}
-function renderPreview() {
-  const wrap = document.querySelector('.preview-wrap'); const el = $('preview');
-  if (!state.slides.length) { el.innerHTML = ''; return; }
-  const interactive = !!(state.ui && state.ui.canvasEdit);
-  renderSlideInto(el, activeSlide(), { interactive });
-  el.classList.toggle('ce-on', interactive);
-  if (state.ui.guides) el.appendChild(guidesOverlay());
-  el.style.transform = `scale(${wrap.clientWidth / 1080})`;
-  $('previewIdx').textContent = state.current + 1;
-  $('previewTotal').textContent = state.slides.length;
-  ceDecorate();
-  commitSoon();
-}
-function renderAll() { renderPillars(); renderSlideList(); renderEditor(); renderPreview(); }
-
-// 8. ---------- controls / slide actions ----------
-$('wordmark').oninput = e => { state.wordmark = e.target.value; renderPreview(); };
-$('handle').oninput = e => { state.handle = e.target.value; commitSoon(); };
-$('guidesChk').onchange = e => { state.ui.guides = e.target.checked; renderPreview(); };
-$('addCover').onclick = () => { state.slides.push({ type:'cover', eyebrow:PILLAR_CATS[state.pillar][0], title:'New **title** here.' }); state.current = state.slides.length-1; renderAll(); };
-$('addBody').onclick = () => { state.slides.push({ type:'body', heading:'New heading.', body:'Body text...' }); state.current = state.slides.length-1; renderAll(); };
-$('addQuote').onclick = () => { state.slides.push({ type:'quote', eyebrow:PILLAR_CATS[state.pillar][0], quote:'A line worth **sitting with.**', attribution:'— Lucid' }); state.current = state.slides.length-1; renderAll(); };
-$('addCompare').onclick = () => { state.slides.push({ type:'compare', heading:'The contrast:', labelA:'The trap', textA:'What most people do.', colorA:'#C8553D', labelB:'The move', textB:'What you do instead.', colorB:'#3E9E6E' }); state.current = state.slides.length-1; renderAll(); };
-$('addTerm').onclick = () => { state.slides.push({ type:'term', eyebrow:PILLAR_CATS[state.pillar][0], term:'New term', definition:'A one- or two-line definition that earns the swipe.', example:'' }); state.current = state.slides.length-1; renderAll(); };
-$('addInterrupt').onclick = () => { state.slides.push({ type:'interrupt', kicker:'Read this twice', line:'One line that **stops** the scroll.' }); state.current = state.slides.length-1; renderAll(); };
-$('addRecap').onclick = () => { state.slides.push({ type:'recap', kicker:'Save this', title:'The recap:', items:['First takeaway.','Second takeaway.','Third takeaway.'] }); state.current = state.slides.length-1; renderAll(); };
-$('addCta').onclick = () => { state.slides.push({ type:'cta', text:'Save this. You’ll want it later.' }); state.current = state.slides.length-1; renderAll(); };
-$('dupSlide').onclick = () => { if (!state.slides.length) return; state.slides.splice(state.current+1, 0, JSON.parse(JSON.stringify(activeSlide()))); state.current++; renderAll(); };
-$('delSlide').onclick = () => { if (!state.slides.length) return; state.slides.splice(state.current, 1); state.current = Math.max(0, state.current-1); renderAll(); };
-$('prevSlide').onclick = () => { state.current = Math.max(0, state.current-1); renderAll(); };
-$('nextSlide').onclick = () => { state.current = Math.min(state.slides.length-1, state.current+1); renderAll(); };
-
-// 9. ---------- history (undo / redo) + autosave ----------
-const SKEY = 'tgm_state_v2';
-let history = [], hidx = -1, suppress = false, saveTimer = null, histTimer = null;
-function snap() { return JSON.stringify(state); }
-function pushHistory() {
-  const s = snap();
-  if (history[hidx] === s) return;
-  history = history.slice(0, hidx + 1); history.push(s);
-  if (history.length > 80) history.shift();
-  hidx = history.length - 1;
-  updateHistButtons();
-}
-function commitSoon() {
-  clearTimeout(saveTimer); saveTimer = setTimeout(() => { try { localStorage.setItem(SKEY, snap()); } catch (e) {} }, 350);
-  if (!suppress) { clearTimeout(histTimer); histTimer = setTimeout(pushHistory, 450); }
-}
-function restore(json) {
-  suppress = true;
-  state = migrate(JSON.parse(json));
-  ceField = null; ceEditing = false; ceHideToolbar();
-  syncBrand(); rebuildGrids(); renderAll();
-  $('guidesChk').checked = !!state.ui.guides;
-  $('canvasChk').checked = !!state.ui.canvasEdit;
-  suppress = false;
-  updateHistButtons();
-}
-function undo() { if (hidx > 0) { hidx--; restore(history[hidx]); } }
-function redo() { if (hidx < history.length - 1) { hidx++; restore(history[hidx]); } }
-function updateHistButtons() { $('undoBtn').disabled = hidx <= 0; $('redoBtn').disabled = hidx >= history.length - 1; }
-$('undoBtn').onclick = undo; $('redoBtn').onclick = redo;
-function syncBrand() { $('wordmark').value = state.wordmark; $('handle').value = state.handle; }
-
-// 10. ---------- export & import ----------
-async function exportSlide(slide, format, index) {
-  // Fresh node per export: html-to-image leaves the previous node in a state that
-  // makes repeat calls render blank, so reusing one target breaks "Download all".
-  const stage = $('render-stage');
-  const target = h('div', { class:'slide', style:{ transform:'none' } });
-  stage.appendChild(target);
-  const idx = (index != null) ? index : state.slides.indexOf(slide);
-  renderSlideInto(target, slide, { index:idx, total:state.slides.length });   // no guides on export target
-  if (document.fonts && document.fonts.ready) await document.fonts.ready;
-  await new Promise(r => setTimeout(r, 60));
-  const opts = { width:1080, height:1350, pixelRatio:1, backgroundColor:slideBg(slide) };
-  try {
-    return (format === 'jpg')
-      ? await htmlToImage.toJpeg(target, { ...opts, quality:0.95 })
-      : await htmlToImage.toPng(target, opts);
-  } finally { stage.removeChild(target); }
-}
-function dataUrlToBlob(u) { const [head,b64] = u.split(','); const mime = head.match(/data:(.*?);base64/)[1]; const bin = atob(b64); const arr = new Uint8Array(bin.length); for (let i=0;i<bin.length;i++) arr[i]=bin.charCodeAt(i); return new Blob([arr],{type:mime}); }
-$('dlOne').onclick = async () => { if (!state.slides.length) return; const fmt = $('format').value; const url = await exportSlide(activeSlide(), fmt, state.current); saveAs(dataUrlToBlob(url), `${state.pillar}_slide_${String(state.current+1).padStart(2,'0')}.${fmt}`); };
-$('dlAll').onclick = async () => {
-  if (!state.slides.length) return;
-  const fmt = $('format').value, zip = new JSZip(), btn = $('dlAll'); btn.disabled = true;
-  try {
-    for (let i=0;i<state.slides.length;i++) { btn.textContent = `Rendering ${i+1}/${state.slides.length}...`; const url = await exportSlide(state.slides[i], fmt, i); zip.file(`slide_${String(i+1).padStart(2,'0')}.${fmt}`, url.split(',')[1], { base64:true }); }
-    saveAs(await zip.generateAsync({ type:'blob' }), `thegreymind_${state.pillar}.zip`);
-  } finally { btn.disabled = false; btn.textContent = 'Download all (ZIP)'; }
-};
-$('exportJson').onclick = () => saveAs(new Blob([JSON.stringify(state, null, 2)], { type:'application/json' }), `thegreymind_${state.pillar}.json`);
-$('importJson').onclick = () => $('fileInput').click();
-$('fileInput').onchange = async e => { const f = e.target.files[0]; if (!f) return; try { restore(await f.text()); pushHistory(); } catch (err) { alert('Invalid JSON: ' + err.message); } };
-$('resetState').onclick = () => { if (confirm('Reset to the sample carousel? (current work is lost)')) { restore(JSON.stringify(defaultState())); pushHistory(); } };
-$('clearSaved').onclick = () => { try { localStorage.removeItem(SKEY); } catch (e) {} alert('Autosave cleared. Refresh for a fresh start.'); };
-
-document.addEventListener('keydown', e => {
-  const typing = ['INPUT','TEXTAREA','SELECT'].includes(document.activeElement.tagName);
-  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z' && !e.shiftKey) { e.preventDefault(); undo(); return; }
-  if ((e.ctrlKey || e.metaKey) && (e.key.toLowerCase() === 'y' || (e.shiftKey && e.key.toLowerCase() === 'z'))) { e.preventDefault(); redo(); return; }
-  if (ceEditing) return;                                  // editing handles its own keys (stopPropagation)
-  if (ceField && e.key === 'Escape') { e.preventDefault(); ceDeselect(); return; }
-  if (ceField && ['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(e.key)) { e.preventDefault(); ceNudge(e.key, e.shiftKey ? 10 : 2); return; }
-  if (typing) return;
-  if (e.key === 'ArrowLeft') $('prevSlide').click();
-  if (e.key === 'ArrowRight') $('nextSlide').click();
-});
-
-// 10b. ---------- in-canvas editing (select · drag/nudge · in-place text) ----------
-let ceField = null;     // dataset.field of the selected block (null = nothing selected)
-let ceEditing = false;  // true while a block is contenteditable
-let ceSnap = { x:null, y:null };   // active snap-guide positions (slide coords) during a drag
-
-const CHROME_FIELDS = ['wordmark', 'counter'];   // positioned globally (layout.pos), not per-slide
-function ceBlocks() { return $('preview').querySelectorAll('.ce-block'); }
-function ceFindBlock(field) { return [...ceBlocks()].find(b => b.dataset.field === field); }
-function posStore(field, create) {
-  if (CHROME_FIELDS.includes(field)) { if (create && !state.layout.pos) state.layout.pos = {}; return state.layout.pos; }
-  const s = activeSlide(); if (create && !s.pos) s.pos = {}; return s.pos;
-}
-function cePos(field) { const st = posStore(field, false); return (st && st[field]) || { x:0, y:0 }; }
-function ceSetPos(field, x, y) {
-  posStore(field, true)[field] = { x: Math.round(x), y: Math.round(y) };
-  renderPreview();
-}
-function ceResetPos(field) {
-  const st = posStore(field, false);
-  if (st) { delete st[field]; if (!Object.keys(st).length && !CHROME_FIELDS.includes(field)) delete activeSlide().pos; }
-  renderPreview(); commitSoon();
-}
-
-// Re-runs after every preview render: re-binds listeners + restores selection outline/toolbar.
-function ceDecorate() {
-  if (!(state.ui && state.ui.canvasEdit)) { ceHideToolbar(); return; }
-  ceBlocks().forEach(b => {
-    b.addEventListener('mousedown', ceOnBlockDown);
-    b.addEventListener('dblclick', ceOnBlockDbl);
-  });
-  if (ceField) {
-    const b = ceFindBlock(ceField);
-    if (b) { b.classList.add('ce-sel'); cePlaceToolbar(b); }
-    else { ceField = null; ceEditing = false; ceHideToolbar(); }
-  }
-  if (ceSnap.x != null) $('preview').appendChild(h('div', { class:'ce-guide v', style:{ left:ceSnap.x + 'px' } }));
-  if (ceSnap.y != null) $('preview').appendChild(h('div', { class:'ce-guide h', style:{ top:ceSnap.y + 'px' } }));
-}
-function ceSelect(field) { ceEditing = false; ceField = field; renderPreview(); }
-function ceDeselect() { ceField = null; ceEditing = false; ceHideToolbar(); renderPreview(); }
-function ceNudge(key, step) {
-  const p = cePos(ceField);
-  let { x, y } = p;
-  if (key === 'ArrowLeft') x -= step; else if (key === 'ArrowRight') x += step;
-  else if (key === 'ArrowUp') y -= step; else if (key === 'ArrowDown') y += step;
-  ceSetPos(ceField, x, y); commitSoon();
-}
-
-// ---- drag to move (with snap to margins / centre) ----
-const SLIDE_W = 1080, SLIDE_H = 1350, SNAP_TH = 14;
-function snapAxis(edges, targets) {
-  let best = null;
-  for (const t of targets) for (const edge of edges) {
-    const d = Math.abs(edge - t);
-    if (d <= SNAP_TH && (!best || d < best.d)) best = { d, corr: t - edge, guide: t };
-  }
-  return best;
-}
-function ceOnBlockDown(e) {
-  if (ceEditing) return;                       // in edit mode, let the browser select text
-  const field = e.currentTarget.dataset.field;
-  if (field !== ceField) ceSelect(field);
-  e.preventDefault();
-  const sr = $('preview').getBoundingClientRect(), scale = sr.width / 1080;
-  const sx = e.clientX, sy = e.clientY, base = cePos(field);
-  const liveBlock = ceFindBlock(field) || e.currentTarget;
-  liveBlock.classList.add('ce-drag');
-  const br = liveBlock.getBoundingClientRect();
-  // geometry at offset 0, in slide coords
-  const natL = (br.left - sr.left) / scale - base.x, natT = (br.top - sr.top) / scale - base.y;
-  const bw = br.width / scale, bh = br.height / scale, m = state.layout.margin;
-  let moved = false;
-  function move(ev) {
-    if (!moved && Math.abs(ev.clientX - sx) + Math.abs(ev.clientY - sy) < 3) return;
-    moved = true;
-    let px = base.x + (ev.clientX - sx) / scale, py = base.y + (ev.clientY - sy) / scale;
-    if (ev.shiftKey) { ceSnap = { x:null, y:null }; }   // hold Shift to move freely
-    else {
-      const L = natL + px, T = natT + py;
-      const sX = snapAxis([L, L + bw / 2, L + bw], [m, SLIDE_W / 2, SLIDE_W - m]);
-      const sY = snapAxis([T, T + bh / 2, T + bh], [m, SLIDE_H / 2, SLIDE_H - m]);
-      if (sX) px += sX.corr;
-      if (sY) py += sY.corr;
-      ceSnap = { x: sX ? sX.guide : null, y: sY ? sY.guide : null };
-    }
-    ceSetPos(field, px, py);
-  }
-  function up() {
-    document.removeEventListener('mousemove', move);
-    document.removeEventListener('mouseup', up);
-    ceSnap = { x:null, y:null };
-    if (moved) { renderPreview(); commitSoon(); }
-  }
-  document.addEventListener('mousemove', move);
-  document.addEventListener('mouseup', up);
-}
-
-// ---- in-place text editing ----
-function ceOnBlockDbl(e) {
-  const b = e.currentTarget;
-  if (CHROME_FIELDS.includes(b.dataset.field)) { ceSelect(b.dataset.field); return; }  // chrome: select, not text-edit
-  ceField = b.dataset.field; ceEditing = true;
-  b.classList.add('ce-sel', 'ce-editing');
-  b.setAttribute('contenteditable', 'true');
-  b.style.cursor = 'text';
-  b.focus();
-  b.addEventListener('keydown', ceEditKeydown);
-  b.addEventListener('blur', ceCommitEdit, { once:true });
-  cePlaceToolbar(b);
-}
-function ceEditKeydown(e) {
-  e.stopPropagation();                         // shield global undo/nudge/nav
-  if (e.key === 'Escape') { e.preventDefault(); e.currentTarget.blur(); }
-}
-function ceCommitEdit(e) {
-  const b = e.target, field = b.dataset.field;
-  const markup = serializeBlock(b);
-  b.removeAttribute('contenteditable');
-  b.classList.remove('ce-editing');
-  b.removeEventListener('keydown', ceEditKeydown);
-  ceEditing = false;
-  activeSlide()[field] = markup;
-  renderEditor(); renderSlideList(); renderPreview(); commitSoon();
-}
-
-// DOM (rich spans from parseMarkup or toolbar wraps) → our markup string.
-function cssColorToHex(c) {
-  if (!c) return null;
-  const m = /rgba?\((\d+),\s*(\d+),\s*(\d+)/.exec(c);
-  if (m) return rgbToHex(+m[1], +m[2], +m[3]);
-  if (/^#[0-9a-fA-F]{6}$/.test(c)) return c.toLowerCase();
-  return null;
-}
-function styleWraps(el) {
-  let pre = '', suf = '';
-  const st = el.style || {};
-  const sz = parseInt(st.fontSize, 10);
-  if (sz) { pre += `[sz=${sz}]`; suf = '[/sz]' + suf; }
-  const hx = cssColorToHex(st.color);
-  if (hx) { pre += `[c=${hx}]`; suf = '[/c]' + suf; }
-  const w = String(st.fontWeight || '');
-  if (w === '700' || w === 'bold') { pre += '**'; suf = '**' + suf; }
-  else if (w && w !== '400' && w !== 'normal') { pre += `[w=${w}]`; suf = '[/w]' + suf; }
-  return { pre, suf };
-}
-function serializeBlock(root) {
-  let out = '';
-  (function walk(node) {
-    node.childNodes.forEach(n => {
-      if (n.nodeType === 3) { out += n.nodeValue; return; }
-      if (n.nodeType !== 1) return;
-      const tag = n.tagName;
-      if (tag === 'BR') { out += '\n'; return; }
-      if ((tag === 'DIV' || tag === 'P') && out && !out.endsWith('\n')) out += '\n';
-      const w = styleWraps(n);
-      out += w.pre; walk(n); out += w.suf;
-    });
-  })(root);
-  return out.replace(/ /g, ' ').replace(/\n{3,}/g, '\n\n').replace(/[ \t]+\n/g, '\n').replace(/\s+$/, '');
-}
-
-// ---- floating toolbar ----
-function ceHideToolbar() { const tb = $('ceToolbar'); if (tb) tb.classList.remove('show'); }
-function ceWrapSel(styleObj) {
-  const sel = window.getSelection();
-  if (!sel || !sel.rangeCount) return;
-  const range = sel.getRangeAt(0);
-  if (range.collapsed) return;
-  const span = document.createElement('span');
-  Object.assign(span.style, styleObj);
-  try { range.surroundContents(span); }
-  catch (_) { span.appendChild(range.extractContents()); range.insertNode(span); }
-  const r2 = document.createRange(); r2.selectNodeContents(span);
-  sel.removeAllRanges(); sel.addRange(r2);
-}
-function ceBtn(label, title, onclick, opts = {}) {
-  const b = h('button', { title, class: opts.cls || '' }, opts.html ? '' : label);
-  if (opts.html) b.innerHTML = label;
-  b.onmousedown = e => e.preventDefault();   // keep focus in the editable / block selection
-  b.onclick = onclick;
-  return b;
-}
-function buildToolbar() {
-  const tb = $('ceToolbar'); tb.innerHTML = '';
-  if (ceEditing) {
-    const colour = h('input', { type:'color', value:'#F5F5F5', title:'Highlight colour' });
-    colour.onmousedown = e => e.preventDefault();
-    colour.oninput = () => ceWrapSel({ color: colour.value });
-    const size = h('input', { type:'number', min:10, max:200, value:state.type[ceField === 'text' ? 'cta' : ceField]?.size || 60, title:'Size (px)' });
-    size.onmousedown = e => e.preventDefault();
-    tb.append(
-      ceBtn('<b>B</b>', 'Bold (700)', () => ceWrapSel({ fontWeight:'700' }), { html:true }),
-      ceBtn('M', 'Medium (500)', () => ceWrapSel({ fontWeight:'500' })),
-      ceBtn('L', 'Light (300)', () => ceWrapSel({ fontWeight:'300' })),
-      h('span', { class:'vline' }), colour,
-      h('span', { class:'vline' }), size,
-      ceBtn('px', 'Apply size', () => ceWrapSel({ fontSize: size.value + 'px' })),
-      h('span', { class:'vline' }),
-      ceBtn('Done', 'Finish editing (Esc)', () => { const b = ceFindBlock(ceField); if (b) b.blur(); }, { cls:'on' }),
-    );
-  } else {
-    const nudge = h('div', { class:'nudge' },
-      ceBtn('◀', 'Nudge left', () => ceNudge('ArrowLeft', 4)),
-      ceBtn('▲', 'Nudge up', () => ceNudge('ArrowUp', 4)),
-      ceBtn('▼', 'Nudge down', () => ceNudge('ArrowDown', 4)),
-      ceBtn('▶', 'Nudge right', () => ceNudge('ArrowRight', 4)));
-    const editBtn = CHROME_FIELDS.includes(ceField) ? null
-      : ceBtn('Edit text', 'Edit this block in place (or double-click it)', () => { const b = ceFindBlock(ceField); if (b) ceOnBlockDbl({ currentTarget:b }); }, { cls:'on' });
-    tb.append(...[
-      editBtn, editBtn && h('span', { class:'vline' }), nudge,
-      h('span', { class:'vline' }),
-      ceBtn('Reset pos', 'Clear this block’s offset', () => ceResetPos(ceField)),
-    ].filter(Boolean));
-  }
-}
-function cePlaceToolbar(b) {
-  const tb = $('ceToolbar');
-  buildToolbar();
-  tb.classList.add('show');
-  tb.style.visibility = 'hidden';
-  const r = b.getBoundingClientRect(), tw = tb.offsetWidth, th = tb.offsetHeight;
-  let top = r.top - th - 10; if (top < 8) top = r.bottom + 10;
-  let left = r.left + r.width / 2 - tw / 2;
-  left = Math.max(8, Math.min(left, window.innerWidth - tw - 8));
-  tb.style.top = top + 'px'; tb.style.left = left + 'px';
-  tb.style.visibility = 'visible';
-}
-
-// click anywhere outside a block / the toolbar → deselect (capture: runs before block mousedown)
-document.addEventListener('mousedown', e => {
-  if (!(state.ui && state.ui.canvasEdit) || !ceField) return;
-  if (e.target.closest && (e.target.closest('#preview .ce-block') || e.target.closest('#ceToolbar'))) return;
-  if (ceEditing) return;                       // blur handler commits the edit
-  ceDeselect();
-}, true);
-
-$('canvasChk').onchange = e => { state.ui.canvasEdit = e.target.checked; if (!e.target.checked) { ceField = null; ceEditing = false; } renderPreview(); };
-
-// 11. ---------- init ----------
-(function init() {
-  try { const saved = localStorage.getItem(SKEY); if (saved) { const p = JSON.parse(saved); if (p && p.v === 2) state = p; } } catch (e) {}
-  migrate(state);
-  bindFormatBar();
-  syncBrand();
-  $('guidesChk').checked = !!state.ui.guides;
-  $('canvasChk').checked = !!state.ui.canvasEdit;
-  rebuildGrids();
-  renderAll();
-  history = [snap()]; hidx = 0; updateHistButtons();
-  window.TGM = { state:() => state, renderSlideInto, parseMarkup, slideBg, blendOver, exportSlide, serializeBlock };
-})();
-</script>
-
-<script type="module">
-  import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js';
-  import { getFirestore, doc, updateDoc, increment, getDoc, setDoc } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js';
-
-  const app = initializeApp({
-    apiKey: "AIzaSyABGoxOXj0kHuYXFnNmUqcUT0l4FG5J7NU",
-    authDomain: "the-grey-mind.firebaseapp.com",
-    projectId: "the-grey-mind",
-    storageBucket: "the-grey-mind.firebasestorage.app",
-    messagingSenderId: "296394264485",
-    appId: "1:296394264485:web:707c0e9ab16fdbb676224c"
-  });
-
-  const db = getFirestore(app);
-
-  async function trackVisit() {
-    const ref = doc(db, 'stats', 'visitors');
-    try {
-      await updateDoc(ref, { total: increment(1) });
-    } catch {
-      await setDoc(ref, { total: 1 });
-    }
-    const snap = await getDoc(ref);
-    const count = snap.data()?.total ?? 1;
-    const formatted = count.toLocaleString();
-    document.getElementById('visitCount').textContent = formatted;
-    document.getElementById('visitWrap').style.display = '';
-    document.getElementById('visitCountSidebar').textContent = formatted;
-    document.getElementById('visitBadge').style.display = 'flex';
-  }
-
-  trackVisit();
-</script>
+<script type="module" src="js/firebase.js"></script>
 </body>
 </html>
